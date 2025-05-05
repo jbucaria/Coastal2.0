@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coastal Restoration Services</title>
+    <style>
+      /* Basic Reset & Fonts */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        background: #f0f8ff; /* Light "coastal" color */
+        color: #333;
+        line-height: 1.6;
+      }
+
+      header {
+        background: #007bff;
+        color: #fff;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      nav a {
+        color: #fff;
+        margin: 0 1rem;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      /* Hero Section */
+      .hero {
+        background: url('https://picsum.photos/1200/500?grayscale') center/cover
+          no-repeat;
+        height: 50vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      /* Main Content */
+      .content {
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .content h2 {
+        margin-bottom: 1rem;
+      }
+      .content p {
+        margin-bottom: 1rem;
+      }
+
+      /* Privacy Policy Section */
+      #privacy-policy {
+        background: #fff;
+        border: 1px solid #ccc;
+        padding: 1rem;
+        margin-top: 2rem;
+      }
+      #privacy-policy h2 {
+        margin-bottom: 1rem;
+        color: #007bff;
+      }
+
+      /* Footer */
+      footer {
+        text-align: center;
+        padding: 1rem;
+        background: #007bff;
+        color: #fff;
+        margin-top: 2rem;
+      }
+      footer p {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header & Navigation -->
+    <header>
+      <nav>
+        <a href="#">Home</a>
+        <a href="#privacy-policy">Privacy Policy</a>
+        <!-- Add more links (e.g., About, Contact) as needed -->
+      </nav>
+      <h1>Coastal Restoration Services</h1>
+      <p>We help restore your property & keep you fishing!</p>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Protecting Your Coastline, One Job at a Time</h1>
+    </section>
+
+    <!-- Main Content -->
+    <div class="content">
+      <h2>Welcome to Coastal Restoration</h2>
+      <p>
+        Coastal Restoration Services specializes in providing top-notch
+        remediation and restoration solutions to protect your home, business,
+        and the environment. Whether it’s flood damage, mold remediation, or
+        other restoration needs, we bring expertise and a passion for coastal
+        living to every job.
+      </p>
+      <p>
+        We love fishing and believe in preserving the natural beauty of our
+        shores for generations to come. Explore our services, learn more about
+        our mission, or get in touch to start your next restoration project.
+      </p>
+
+      <!-- Privacy Policy Section (Placeholder) -->
+      <section id="privacy-policy">
+        <h2>Privacy Policy</h2>
+        <p>
+          Here’s where you’ll include the privacy policy text, explaining how
+          Coastal Restoration Services collects, uses, and safeguards user data.
+          You can copy and paste the policy text we provided earlier (or a more
+          detailed version) here.
+        </p>
+        <!-- Add the rest of your Privacy Policy text below -->
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; <span id="year"></span> Coastal Restoration Services</p>
+    </footer>
+
+    <script>
+      // Update the current year automatically
+      document.getElementById('year').textContent = new Date().getFullYear()
+    </script>
+  </body>
+</html>

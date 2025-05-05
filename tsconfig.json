@@ -1,0 +1,24 @@
+// tsconfig.json
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts",
+    "app/(tabs)/index.js",
+    "app/(tabs)/explore.js",
+    "app/(tabs)/_layout.js",
+    "app/+not-found.js",
+    "app/_layout.js",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "components/ui/IconSymbol.tsx",
+    "components/ui/TabBarBackground.ios.js"
+  ]
+}

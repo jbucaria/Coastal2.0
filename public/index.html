@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coastal Restoration Services - Revitalize Your Coastline</title>
+    <style>
+      /* ---------------------- BASE RESET ---------------------- */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+        color: #333;
+        height: 100%;
+        scroll-behavior: smooth;
+      }
+
+      /* ---------------------- ROOT VARIABLES ---------------------- */
+      :root {
+        --primary-color: #263238; /* A deep, gray-ish tone referencing the fish silhouette */
+        --secondary-color: #1e88e5; /* A coastal blue for highlights */
+        --accent-color: #ff5722; /* A pop of bright color for buttons/links */
+        --light-bg: #ffffff;
+        --gray-bg: #e0e0e0;
+      }
+
+      /* ---------------------- GLOBAL WRAPPER ---------------------- */
+      #wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      /* ---------------------- HEADER ---------------------- */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background-color: var(--primary-color);
+        padding: 1rem;
+      }
+      .header-inner {
+        width: 90%;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .header-logo {
+        display: flex;
+        align-items: center;
+      }
+      /* Example fish silhouette (replace with your actual image or brand mark) */
+      .header-logo img {
+        height: 50px;
+        margin-right: 0.75rem;
+      }
+      .site-title {
+        color: #fff;
+        font-size: 1.7rem;
+        font-weight: bold;
+        letter-spacing: 1px;
+      }
+      nav a {
+        color: #fff;
+        text-decoration: none;
+        margin-left: 1.5rem;
+        transition: color 0.2s ease;
+        font-weight: 600;
+      }
+      nav a:hover {
+        color: var(--accent-color);
+      }
+
+      /* ---------------------- HERO SECTION ---------------------- */
+      .hero {
+        background: url('https://picsum.photos/1200/600/?grayscale')
+          center/cover no-repeat;
+        position: relative;
+        height: 60vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        color: #fff;
+        overflow: hidden;
+      }
+      /* Subtle overlay referencing the fish silhouette style */
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(38, 50, 56, 0.4),
+          rgba(38, 50, 56, 0.7)
+        );
+        z-index: 1;
+      }
+      .hero h1,
+      .hero p {
+        position: relative;
+        z-index: 2;
+        margin: 1rem 0;
+      }
+      .hero h1 {
+        font-size: 3rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .hero p {
+        font-size: 1.2rem;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.4;
+      }
+      .hero .cta-button {
+        display: inline-block;
+        padding: 0.8rem 1.5rem;
+        background: var(--accent-color);
+        color: #fff;
+        text-decoration: none;
+        border-radius: 4px;
+        margin-top: 1rem;
+        font-weight: bold;
+        transition: background 0.3s;
+      }
+      .hero .cta-button:hover {
+        background: #e64a19; /* Slightly darker accent color */
+      }
+
+      /* ---------------------- MAIN CONTENT ---------------------- */
+      main {
+        flex: 1;
+        width: 90%;
+        max-width: 1100px;
+        margin: 2rem auto;
+        padding-bottom: 2rem;
+      }
+
+      /* "Vertical" styled heading reminiscent of T-shirt text alignment */
+      .vertical-heading {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--primary-color);
+        margin-right: 1rem;
+      }
+
+      /* About Section */
+      .about-section {
+        margin-bottom: 3rem;
+      }
+      .about-section h2 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-size: 1.8rem;
+      }
+      .about-section p {
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      /* Services Section */
+      .services-section {
+        margin-bottom: 3rem;
+      }
+      .services-section h2 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-size: 1.8rem;
+      }
+      .service-cards {
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+      .service-card {
+        background-color: var(--light-bg);
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+      }
+      .service-card:hover {
+        transform: translateY(-3px);
+      }
+      .service-card h3 {
+        margin-bottom: 0.5rem;
+        color: var(--secondary-color);
+        font-size: 1.2rem;
+      }
+      .service-card p {
+        line-height: 1.4;
+      }
+
+      /* Legal Section */
+      .legal-section {
+        margin-top: 3rem;
+      }
+      .legal-section h2 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+      }
+      .scrollable-legal {
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: #fff;
+        padding: 1rem;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-family: monospace;
+        white-space: pre-wrap;
+        line-height: 1.4;
+      }
+
+      /* ---------------------- FOOTER ---------------------- */
+      footer {
+        background-color: var(--primary-color);
+        color: #fff;
+        text-align: center;
+        padding: 1rem;
+      }
+      footer p {
+        font-size: 0.9rem;
+      }
+
+      /* ---------------------- MEDIA QUERIES ---------------------- */
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.2rem;
+        }
+        .hero p {
+          font-size: 1rem;
+        }
+        nav a {
+          margin-left: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wrapper">
+      <!-- HEADER with fish-inspired dark background -->
+      <header>
+        <div class="header-inner">
+          <div class="header-logo">
+            <!-- Replace with your fish silhouette or logo image -->
+            <img
+              src="REPLACE-WITH-YOUR-FISH-LOGO.png"
+              alt="Coastal Restoration Logo"
+            />
+            <span class="site-title">Coastal Restoration</span>
+          </div>
+          <nav>
+            <a href="#hero">Home</a>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#legal">Legal</a>
+          </nav>
+        </div>
+      </header>
+
+      <!-- HERO SECTION -->
+      <section class="hero" id="hero">
+        <h1>Revitalize Your Coastline</h1>
+        <p>Restoring your property and keeping you fishing since day one.</p>
+        <a href="#services" class="cta-button">Explore Our Services</a>
+      </section>
+
+      <!-- MAIN CONTENT -->
+      <main>
+        <!-- About Section -->
+        <section class="about-section" id="about">
+          <h2>About Us</h2>
+          <p>
+            We specialize in providing top-notch remediation and restoration
+            solutions to protect your home, business, and the environment. From
+            water damage to mold removal, our team blends expertise with a
+            passion for coastal living to ensure every job is done right.
+          </p>
+          <p>
+            Inspired by our deep connection to the water, we're committed to
+            helping you maintain a beautiful, functional property—so you can
+            keep reeling in the good times.
+          </p>
+        </section>
+
+        <!-- Services Section -->
+        <section class="services-section" id="services">
+          <h2>Our Services</h2>
+          <div class="service-cards">
+            <div class="service-card">
+              <h3>Water Damage Repair</h3>
+              <p>
+                Rapid response & thorough restoration to protect your
+                investment.
+              </p>
+            </div>
+            <div class="service-card">
+              <h3>Mold Remediation</h3>
+              <p>
+                A healthy home starts with high-quality air and mold-free
+                spaces.
+              </p>
+            </div>
+            <div class="service-card">
+              <h3>Fire & Smoke Cleanup</h3>
+              <p>We handle the aftermath so you can breathe easy again.</p>
+            </div>
+            <div class="service-card">
+              <h3>Coastal Conservation</h3>
+              <p>
+                Preserving our beaches & shorelines for generations to come.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Legal Section (scrollable) -->
+        <section class="legal-section" id="legal">
+          <h2>Legal</h2>
+          <div class="scrollable-legal">
+            <!-- Paste your EULA/Privacy text here -->
+            ======================================================== COASTAL
+            RESTORATION END-USER LICENSE AGREEMENT (EULA) AND PRIVACY POLICY
+            ======================================================== [Your
+            existing EULA & privacy content goes here...]
+          </div>
+        </section>
+      </main>
+
+      <!-- FOOTER -->
+      <footer>
+        <p>&copy; <span id="year"></span> Coastal Restoration Services</p>
+      </footer>
+    </div>
+
+    <script>
+      // Set the current year automatically
+      document.getElementById('year').textContent = new Date().getFullYear()
+    </script>
+  </body>
+</html>

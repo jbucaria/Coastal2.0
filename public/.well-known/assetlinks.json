@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jbucaria.coastal",
+      "sha256_cert_fingerprints": [
+        "FC911E2A0302B2BF2851FE44E61053ADE0CD617DA2F92D180B123742A2FE5B48"
+      ]
+    }
+  }
+]

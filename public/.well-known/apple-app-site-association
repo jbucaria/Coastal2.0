@@ -1,0 +1,25 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "N9B7S6R32.com.jbucaria.Coastal",
+        "paths": [
+          "/oauth/callback",
+          "/oauth/callback/",
+          "/oauth/callback/*"
+        ]
+      },
+      {
+        "appIDs": [
+          "N9B7S6R32.com.jbucaria.Coastal"
+        ],
+        "components": [
+          {
+            "/": "/oauth/callback*"
+          }
+        ]
+      }
+    ]
+  }
+}

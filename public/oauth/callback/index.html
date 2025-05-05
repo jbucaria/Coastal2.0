@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta
+      http-equiv="refresh"
+      content="0;url=coastalrestorationservice://oauth/callback?{query}"
+    />
+  </head>
+  <body>
+    <p>Redirecting...</p>
+    <script>
+      const query = window.location.search
+      window.location.href = `coastalrestorationservice://oauth/callback${query}`
+    </script>
+  </body>
+</html>

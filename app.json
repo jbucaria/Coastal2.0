@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "Coastal",
+    "slug": "coastal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/appicon.png",
+    "scheme": "coastalrestorationservice",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "associatedDomains": ["applinks:coastalrestorationservice.com"],
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jbucaria.Coastal",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["comgooglemaps"],
+        "GMSApiKey": "AIzaSyCaaprXbVDmKz6W5rn3s6W4HhF4S1K2-zs"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/appicon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "permissions": ["android.permission.RECORD_AUDIO"],
+      "package": "com.jbucaria.coastal",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCaaprXbVDmKz6W5rn3s6W4HhF4S1K2-zs"
+        }
+      }
+    },
+    "intentFilters": [
+      {
+        "action": "VIEW",
+        "data": {
+          "scheme": "https",
+          "host": "coastalrestorationservice.com",
+          "path": "/oauth/callback"
+        },
+        "category": ["BROWSABLE", "DEFAULT"]
+      }
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/webicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splashscreen.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to access your location"
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "owner": "jbucaria"
+  }
+}
