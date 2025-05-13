@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { doc, updateDoc, collection, getDocs, getDoc } from 'firebase/firestore'
 import { firestore } from '@/firebaseConfig'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions'
+import * as FileSystem from 'expo-file-system'
 import { FloatingButton } from '@/components/FloatingButton'
 import { IconSymbol } from '@/components/ui/IconSymbol'
 import useProjectStore from '@/store/useProjectStore'
@@ -39,6 +40,26 @@ const RemediationScreen = () => {
   const { projectId: storeProjectId } = useProjectStore()
 
   const projectId = projectIdFromParams ?? storeProjectId
+  // Cleanup any existing generated PDF files (so editing removes old report)
+  useEffect(() => {
+    const cleanupOldPdfs = async () => {
+      try {
+        const cacheDir = FileSystem.cacheDirectory
+        if (!cacheDir) return
+        const printDir = cacheDir + 'Print/'
+        const files = await FileSystem.readDirectoryAsync(printDir)
+        for (const file of files) {
+          if (file.endsWith('.pdf')) {
+            const fileUri = printDir + file
+            await FileSystem.deleteAsync(fileUri, { idempotent: true })
+          }
+        }
+      } catch (e) {
+        console.warn('Error deleting old PDF files:', e)
+      }
+    }
+    cleanupOldPdfs()
+  }, [])
 
   const [rooms, setRooms] = useState([])
   const [headerHeight, setHeaderHeight] = useState(0)
@@ -382,26 +403,9 @@ const RemediationScreen = () => {
         return
       }
 
-      // Prepare measurements with room name line items
-      const updatedRooms = rooms.map(room => {
-        const roomNameLineItem = {
-          id: `room-name-${room.id}`,
-          name: room.roomTitle,
-          isRoomName: true,
-          tax: true,
-        }
-        const measurementsWithRoomName = [
-          roomNameLineItem,
-          ...room.measurements,
-        ]
-        return {
-          ...room,
-          measurements: measurementsWithRoomName,
-        }
-      })
-
+      // Prepare remediation data without modifying measurements array
       const remediationData = {
-        rooms: updatedRooms,
+        rooms: rooms,
         updatedAt: new Date(),
       }
 

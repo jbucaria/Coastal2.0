@@ -323,7 +323,6 @@ const InspectionScreen = () => {
             ]}
           >
             {/* Display uploaded street view photo if available */}
-            // Display uploaded street view photo if available
             {streetPhoto && streetPhoto.downloadURL ? (
               <View style={{ alignItems: 'center', marginBottom: 20 }}>
                 <Text style={styles.sectionTitle}>Street View Photo</Text>
@@ -373,6 +372,8 @@ const InspectionScreen = () => {
                       handleRoomFieldChange(room.id, 'inspectionFindings', text)
                     }
                     multiline
+                    scrollEnabled={true}
+                    textAlignVertical="top"
                   />
                   <TouchableOpacity
                     style={styles.rephraseButton}

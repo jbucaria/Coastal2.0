@@ -112,9 +112,18 @@ const ViewReportScreen = () => {
       console.log('No PDF URI available to share')
       return
     }
-    if (!pdfUri.startsWith('file://')) {
-      console.warn('Cannot share non-local URI:', pdfUri)
-      return
+    let shareUri = pdfUri
+    // If remote URL, download to a local cache before sharing
+    if (!shareUri.startsWith('file://')) {
+      try {
+        const filename = shareUri.split('/').pop().split('?')[0]
+        const localPath = FileSystem.cacheDirectory + filename
+        const downloadResult = await FileSystem.downloadAsync(shareUri, localPath)
+        shareUri = downloadResult.uri
+      } catch (downloadError) {
+        console.error('Error downloading PDF for share:', downloadError)
+        return
+      }
     }
     try {
       // Check if the file exists

@@ -21,6 +21,9 @@ import useProjectStore from '@/store/useProjectStore'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions' // Ensure this path is correct
 import * as Print from 'expo-print'
 import * as Sharing from 'expo-sharing'
+import { Asset } from 'expo-asset'
+import * as FileSystem from 'expo-file-system'
+import coastalLogo from '../../assets/images/CoastalRestorationServicesLogo-FinalTransparentBG.jpg'
 
 // --- generateHTML function (async, styled like generatePdf) ---
 /**
@@ -99,6 +102,17 @@ const generateHTML = async (ticket, remediationData) => {
   } catch (error) {
     console.error('Error fetching company info from Firestore:', error)
     // Continue with defaults
+  }
+  // --- Load local logo asset as base64 for embedding ---
+  let localLogoDataUri = ''
+  try {
+    const asset = Asset.fromModule(coastalLogo)
+    await asset.downloadAsync()
+    const base64 = await FileSystem.readAsStringAsync(asset.localUri, { encoding: FileSystem.EncodingType.Base64 })
+    const mime = coastalLogo.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
+    localLogoDataUri = `data:${mime};base64,${base64}`
+  } catch (e) {
+    console.warn('Error loading local logo asset:', e)
   }
 
   // --- Format Dates ---
@@ -292,7 +306,9 @@ const generateHTML = async (ticket, remediationData) => {
     <div class="cover-page">
       <div class="cover-header">
         ${
-          logoURL
+          localLogoDataUri
+            ? `<img src="${localLogoDataUri}" alt="Company Logo" class="company-logo" onerror="this.parentElement.innerHTML = '<div class=\\'logo-placeholder\\'>Logo Failed to Load</div>';"/>`
+            : logoURL
             ? `<img src="${logoURL}" alt="Company Logo" class="company-logo" onerror="this.parentElement.innerHTML = '<div class=\\'logo-placeholder\\'>Logo Failed to Load</div>';"/>`
             : '<div class="logo-placeholder">Company Logo Not Available</div>'
         }
@@ -454,13 +470,25 @@ export default function ViewRemediationScreen() {
       const html = await generateHTML(ticket, remediationData)
       console.log('Generated HTML for PDF:', html.substring(0, 500) + '...')
 
-      const { uri } = await Print.printToFileAsync({
+      // 1. Generate PDF to a temporary file
+      const { uri: tempUri } = await Print.printToFileAsync({
         html,
         width: 595,
         height: 842,
       })
-      console.log('PDF generated at URI:', uri)
+      console.log('PDF generated at temporary URI:', tempUri)
 
+      // 2. Rename file to include only street and 'Remediation_Report'
+      const rawStreet = (ticket.street || 'Remediation_Report')
+        .replace(/[^a-z0-9 ]/gi, '')
+        .trim()
+      const safeStreet = rawStreet.replace(/\s+/g, '_')
+      const fileName = `${safeStreet}_Remediation_Report.pdf`
+      const destUri = `${FileSystem.documentDirectory}${fileName}`
+      try { await FileSystem.deleteAsync(destUri, { idempotent: true }) } catch {}
+      await FileSystem.moveAsync({ from: tempUri, to: destUri })
+
+      // 3. Share the renamed PDF file
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert(
           'Sharing Not Available',
@@ -468,9 +496,9 @@ export default function ViewRemediationScreen() {
         )
         return
       }
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(destUri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Share Remediation Report',
+        dialogTitle: `Share ${fileName}`,
       })
     } catch (error) {
       console.error('Error generating or sharing PDF:', error)
