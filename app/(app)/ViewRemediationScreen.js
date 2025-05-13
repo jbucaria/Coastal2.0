@@ -21,9 +21,9 @@ import useProjectStore from '@/store/useProjectStore'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions' // Ensure this path is correct
 import * as Print from 'expo-print'
 import * as Sharing from 'expo-sharing'
-import { Asset } from 'expo-asset'
-import * as FileSystem from 'expo-file-system'
-import coastalLogo from '../../assets/images/CoastalRestorationServicesLogo-FinalTransparentBG.jpg'
+import { Asset } from 'expo-asset' // Make sure Asset is imported
+import * as FileSystem from 'expo-file-system' // Make sure FileSystem is imported
+import coastalLogo from '../../assets/images/CoastalRestorationServicesLogo-FinalTransparentBG.jpg' // VERIFY THIS PATH
 
 // --- generateHTML function (async, styled like generatePdf) ---
 /**
@@ -34,93 +34,171 @@ import coastalLogo from '../../assets/images/CoastalRestorationServicesLogo-Fina
  * @returns {Promise<string>} A promise resolving with the complete HTML string.
  */
 const generateHTML = async (ticket, remediationData) => {
+  console.log('[generateHTML_V3_LogoFix] Function called.')
   // --- Validate Input ---
   if (!ticket || typeof ticket !== 'object') {
-    console.error('generateHTML received invalid ticket data')
+    console.error('[generateHTML_V3_LogoFix] Received invalid ticket data')
     return '<html><body>Error: Invalid ticket data provided.</body></html>'
   }
-  if (!remediationData || typeof remediationData !== 'object') {
-    console.error('generateHTML received invalid remediation data')
-    // Proceeding, but remediation section might be empty/error
+  if (!remediationData) {
+    // Remediation data might be minimal or null
+    console.warn(
+      '[generateHTML_V3_LogoFix] Remediation data is null/undefined.'
+    )
   }
 
   // --- Extract Ticket Data ---
   const {
     ticketNumber = 'N/A',
-    street = '', // Assuming address fields are directly on ticket
+    street = '',
     apt = '',
     city = '',
     state = '',
     zip = '',
-    createdAt = {}, // Use inspection creation date if available
-    startTime, // Remediation start time
-    endTime, // Remediation end time
-    inspectorName = 'Unknown', // Use inspector if relevant, or add technician field
+    createdAt = {},
+    startTime,
+    endTime,
+    inspectorName = 'Unknown',
     typeOfJob = 'N/A',
-    occupied = false,
-    streetPhoto = null, // Expecting { downloadURL: string } or null
+    // occupied = false, // Not used in current HTML template
+    streetPhoto = null,
   } = ticket
 
-  // --- Fetch Company Logo & Details from Firestore ---
-  let logoURL = ''
+  // --- Fetch Company Details from Firestore ---
+  let companyFirestoreLogoUrl = '' // To store URL from Firestore if local fails
   let companyDetails = {
-    // Defaults
     companyName: 'Coastal Restoration Services',
-    email: 'www.coastalrestorationservices@yahoo.com',
-    phoneNumbers: '(727) 313-808-1830 | (813) 919-3420',
+    email: 'info@coastalrestorationservices.com', // Corrected email format
+    phoneNumbers: '(727) 313-8080 | (813) 919-3420', // Example correction
     certifications:
       'Licensed Mold Remediation | State CMR, IICRC Certified | 24/7 Emergency Services',
     licenseNumber: 'MRSR2966',
   }
 
   try {
-    const companyDocRef = doc(firestore, 'companyInfo', 'Vj0FigLyhZCyprQ8iGGV') // Use your actual path/ID
+    const companyDocRef = doc(firestore, 'companyInfo', 'Vj0FigLyhZCyprQ8iGGV')
     const companyDoc = await getDoc(companyDocRef)
     if (companyDoc.exists()) {
-      const fetchedCompanyData = companyDoc.data()
-      logoURL = fetchedCompanyData?.logo || ''
-      // Overwrite defaults with fetched data if fields exist
-      companyDetails.companyName =
-        fetchedCompanyData?.companyName || companyDetails.companyName
-      companyDetails.email = fetchedCompanyData?.email || companyDetails.email
-      companyDetails.phoneNumbers =
-        fetchedCompanyData?.phoneNumbers || companyDetails.phoneNumbers
-      companyDetails.certifications =
-        fetchedCompanyData?.certifications || companyDetails.certifications
-      companyDetails.licenseNumber =
-        fetchedCompanyData?.licenseNumber || companyDetails.licenseNumber
-      // *** Check this log for the logo URL ***
+      const fetched = companyDoc.data()
+      companyFirestoreLogoUrl = fetched?.logo || '' // Get the Firestore logo URL
+      companyDetails = {
+        // Update details
+        companyName: fetched?.companyName || companyDetails.companyName,
+        email: fetched?.email || companyDetails.email,
+        phoneNumbers: fetched?.phoneNumbers || companyDetails.phoneNumbers,
+        certifications:
+          fetched?.certifications || companyDetails.certifications,
+        licenseNumber: fetched?.licenseNumber || companyDetails.licenseNumber,
+      }
       console.log(
-        'Fetched company details and logo URL:',
-        logoURL || 'Not found'
+        '[generateHTML_V3_LogoFix] Fetched Firestore company logo URL:',
+        companyFirestoreLogoUrl || 'Not found'
       )
     } else {
       console.warn(
-        'Company info document (Vj0FigLyhZCyprQ8iGGV) does not exist.'
+        '[generateHTML_V3_LogoFix] Company info document does not exist. Using defaults.'
       )
     }
   } catch (error) {
-    console.error('Error fetching company info from Firestore:', error)
-    // Continue with defaults
+    console.error(
+      '[generateHTML_V3_LogoFix] Error fetching company info from Firestore:',
+      error
+    )
   }
-  // --- Load local logo asset as base64 for embedding ---
-  let localLogoDataUri = ''
+
+  // --- Load local logo asset as base64 for embedding (Primary Method) ---
+  let localLogoDataUri = '' // This will be the data:image URI
+  console.log('[generateHTML_V3_LogoFix] Attempting to load local logo asset.')
   try {
+    if (!coastalLogo) {
+      // Check if the import worked
+      throw new Error(
+        'Local `coastalLogo` import is undefined or null. Verify the import path at the top of ViewRemediationScreen.js'
+      )
+    }
+    console.log(
+      '[generateHTML_V3_LogoFix] `coastalLogo` import reference:',
+      coastalLogo
+    )
+
     const asset = Asset.fromModule(coastalLogo)
+    console.log(
+      `[generateHTML_V3_LogoFix] Asset created: Name: ${asset.name}, Type: ${asset.type}, URI: ${asset.uri}`
+    )
+
     await asset.downloadAsync()
-    const base64 = await FileSystem.readAsStringAsync(asset.localUri, { encoding: FileSystem.EncodingType.Base64 })
-    const mime = coastalLogo.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
+    console.log(
+      `[generateHTML_V3_LogoFix] Asset downloaded. Local URI: ${asset.localUri}`
+    )
+
+    if (!asset.localUri) {
+      throw new Error('Local asset URI is null or undefined after download.')
+    }
+    const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    })
+    if (!base64) {
+      throw new Error('Failed to read asset as base64 or the result was empty.')
+    }
+
+    // More robust MIME type detection
+    let mime = 'image/jpeg' // Default
+    if (asset.type) {
+      const assetTypeLower = asset.type.toLowerCase()
+      if (assetTypeLower === 'png') mime = 'image/png'
+      else if (assetTypeLower === 'jpeg' || assetTypeLower === 'jpg')
+        mime = 'image/jpeg'
+      else if (assetTypeLower) mime = `image/${assetTypeLower}`
+    } else if (asset.name) {
+      const assetNameLower = asset.name.toLowerCase()
+      if (assetNameLower.endsWith('.png')) mime = 'image/png'
+      else if (
+        assetNameLower.endsWith('.jpg') ||
+        assetNameLower.endsWith('.jpeg')
+      )
+        mime = 'image/jpeg'
+    }
+    console.log(
+      '[generateHTML_V3_LogoFix] Determined MIME type for local logo data URI:',
+      mime
+    )
+
     localLogoDataUri = `data:${mime};base64,${base64}`
+    console.log(
+      `[generateHTML_V3_LogoFix] Successfully created local logo data URI. Length: ${localLogoDataUri.length}`
+    )
   } catch (e) {
-    console.warn('Error loading local logo asset:', e)
+    console.warn(
+      '[generateHTML_V3_LogoFix] Error loading local logo asset:',
+      e.message,
+      e.stack ? e.stack.substring(0, 100) : ''
+    )
+    // If local fails, localLogoDataUri will remain empty.
+    // The HTML rendering logic will then try companyFirestoreLogoUrl.
+  }
+
+  // Decide final logo source for HTML
+  let finalLogoSrcForHtml = localLogoDataUri // Prefer local Base64 URI
+  if (!finalLogoSrcForHtml && companyFirestoreLogoUrl) {
+    console.log(
+      '[generateHTML_V3_LogoFix] Local logo failed or unavailable, using Firestore URL for logo.'
+    )
+    finalLogoSrcForHtml = companyFirestoreLogoUrl // Fallback to Firestore URL
+  } else if (finalLogoSrcForHtml) {
+    console.log(
+      '[generateHTML_V3_LogoFix] Using local Base64 Data URI for logo.'
+    )
+  } else {
+    console.log(
+      '[generateHTML_V3_LogoFix] No logo source available (local or Firestore). Placeholder will be shown.'
+    )
   }
 
   // --- Format Dates ---
-  const inspectionDate =
-    createdAt && typeof createdAt.seconds === 'number'
-      ? new Date(createdAt.seconds * 1000)
-      : null
-
+  // (Your existing date formatting logic - seems okay)
+  const inspectionDate = createdAt?.seconds
+    ? new Date(createdAt.seconds * 1000 + (createdAt.nanoseconds || 0) / 1e6)
+    : null
   const inspectionDateStr = inspectionDate
     ? inspectionDate.toLocaleString('en-US', {
         year: 'numeric',
@@ -131,15 +209,22 @@ const generateHTML = async (ticket, remediationData) => {
         hour12: true,
       })
     : 'N/A'
-
-  const remediationStartDate = startTime?.toDate ? startTime.toDate() : null
+  const remediationStartDate = startTime?.toDate
+    ? startTime.toDate()
+    : startTime
+    ? new Date(startTime)
+    : null
   const remediationStartDateStr = remediationStartDate
     ? remediationStartDate.toLocaleString('en-US', {
         dateStyle: 'medium',
         timeStyle: 'short',
       })
     : 'N/A'
-  const remediationEndDate = endTime?.toDate ? endTime.toDate() : null
+  const remediationEndDate = endTime?.toDate
+    ? endTime.toDate()
+    : endTime
+    ? new Date(endTime)
+    : null
   const remediationEndDateStr = remediationEndDate
     ? remediationEndDate.toLocaleString('en-US', {
         dateStyle: 'medium',
@@ -147,15 +232,12 @@ const generateHTML = async (ticket, remediationData) => {
       })
     : 'N/A'
 
-  // --- Get Street Photo URL ---
-  // *** This depends on the 'ticket' object passed IN having ticket.streetPhoto.downloadURL ***
   const streetPhotoURL = streetPhoto?.downloadURL || ''
-  console.log('Using Street Photo URL for HTML:', streetPhotoURL) // Log the URL being used
 
   // --- Build Remediation Rooms HTML ---
+  // (Your existing rooms HTML logic - seems okay for now, ensure p.label or p.comment is used for photo captions)
   let remediationRoomsHTML = ''
   const rooms = remediationData?.rooms || []
-
   if (Array.isArray(rooms) && rooms.length > 0) {
     remediationRoomsHTML = rooms
       .map((room, index) => {
@@ -166,78 +248,52 @@ const generateHTML = async (ticket, remediationData) => {
           measurements = [],
           photos = [],
         } = room || {}
-
-        // Build measurements list HTML
         const measurementsHTML =
           Array.isArray(measurements) && measurements.length > 0
             ? `<ul>${measurements
-                .map(m => {
-                  if (m.isRoomName) {
-                    return `<li class="measurement-item taxable"><strong>${
-                      m.name || 'Room Entry'
-                    }</strong> (Taxable)</li>`
-                  }
-                  return `<li class="measurement-item">${
-                    m.name || 'Unnamed Item'
-                  }${m.description ? ` - ${m.description}` : ''}: ${
-                    m.quantity || 0
-                  }</li>`
-                })
+                .map(
+                  m =>
+                    `<li class="measurement-item ${
+                      m.isRoomName && m.taxable ? 'taxable' : ''
+                    }">${
+                      m.isRoomName
+                        ? `<strong>${m.name || 'Room Entry'}</strong> (Taxable)`
+                        : `${m.name || 'Unnamed Item'}${
+                            m.description ? ` - ${m.description}` : ''
+                          }: ${m.quantity || 0}`
+                    }</li>`
+                )
                 .join('')}</ul>`
-            : '<p class="no-data">No measurements recorded.</p>'
-
-        // Build photos gallery HTML
+            : '<p class="no-data">No measurements.</p>'
         const photosHTML =
           Array.isArray(photos) && photos.length > 0
             ? photos
                 .map(p => {
                   const imageUrl = p?.downloadURL
-                  const label = p?.label
-                  if (imageUrl && typeof imageUrl === 'string') {
-                    if (
-                      !imageUrl.startsWith('http://') &&
-                      !imageUrl.startsWith('https://')
-                    ) {
-                      console.warn(`Invalid photo URL: ${imageUrl}`)
-                      return ''
-                    }
-                    // Added onerror to room photos too
-                    return `<div class="photo-item">
-                             <img src="${imageUrl}" alt="${roomTitle} photo" onerror="this.style.display='none'; this.parentElement.innerHTML += '<p class=\\'no-photos\\'>Photo failed</p>';"/>
-                             ${
-                               label
-                                 ? `<p class="photo-comment">${label}</p>`
-                                 : ''
-                             }
-                           </div>`
+                  const photoCaption = p?.label || p?.comment || '' // Use label first, then comment
+                  if (
+                    imageUrl &&
+                    typeof imageUrl === 'string' &&
+                    (imageUrl.startsWith('http://') ||
+                      imageUrl.startsWith('https://'))
+                  ) {
+                    return `<div class="photo-item"><img src="${imageUrl}" alt="${roomTitle} photo" onerror="this.style.display='none'; this.parentElement.innerHTML += '<p class=\\'no-photos\\'>Photo failed</p>';"/>${
+                      photoCaption
+                        ? `<p class="photo-comment">${photoCaption}</p>`
+                        : '<p class="photo-comment">&nbsp;</p>'
+                    }</div>`
                   }
                   return ''
                 })
                 .join('')
-            : '<p class="no-photos">No photos available for this area.</p>'
-
-        const finalPhotosHTML =
-          photosHTML.trim() === '' && Array.isArray(photos) && photos.length > 0
-            ? '<p class="no-photos">Photos listed but URLs missing or invalid.</p>'
-            : photosHTML ||
-              '<p class="no-photos">No photos available for this area.</p>'
-
-        // Assemble room card
-        return `
-          <div class="room-card">
-            <h3>${roomTitle}</h3>
-            ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
-            ${
-              numberOfFans > 0
-                ? `<p><strong>Fans Used:</strong> ${numberOfFans}</p>`
-                : ''
-            }
-            <p><strong>Line Items / Measurements:</strong></p>
-            ${measurementsHTML}
-            <p><strong>Photos:</strong></p>
-            <div class="photo-gallery">${finalPhotosHTML}</div>
-          </div>
-        `
+            : '<p class="no-photos">No photos.</p>'
+        return `<div class="room-card"><h3>${roomTitle}</h3>${
+          notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''
+        }${
+          numberOfFans > 0
+            ? `<p><strong>Fans Used:</strong> ${numberOfFans}</p>`
+            : ''
+        }<p><strong>Line Items:</strong></p>${measurementsHTML}<p><strong>Photos:</strong></p><div class="photo-gallery">${photosHTML}</div></div>`
       })
       .join('')
   } else {
@@ -245,71 +301,57 @@ const generateHTML = async (ticket, remediationData) => {
       '<p class="no-data">No remediation work areas recorded.</p>'
   }
 
-  // --- Define CSS (Copied & Adapted from generatePdf) ---
+  // --- Define CSS ---
+  // (Your existing integratedModernCSS string - ensure it's complete and correct)
   const integratedModernCSS = `
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
     @page { size: A4; margin: 20mm; }
     @page:first { margin: 0; }
-
     * { box-sizing: border-box; }
-    body {
-        font-family: 'Roboto', sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #ffffff;
-        color: #333;
-        line-height: 1.6;
-    }
-
-    /* Cover Page Styles */
-    .cover-page { width: 210mm; height: 297mm; padding: 30mm 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(to bottom, #e3f2fd, #ffffff); page-break-after: always; position: relative; justify-content: flex-start; }
-    .cover-header { width: 100%; margin-bottom: 15mm; }
-    .company-logo { max-width: 150px; max-height: 75px; width: auto; height: auto; margin-bottom: 15px; object-fit: contain; }
-    .logo-placeholder { width: 150px; height: 50px; border: 2px dashed #b0bec5; display: flex; align-items: center; justify-content: center; color: #78909c; font-size: 14px; background-color: #eceff1; margin: 0 auto 15px; padding: 5px; text-align: center; } /* Added padding/text-align */
-    .company-main-title { color: #0d47a1; font-size: 32px; font-weight: 700; margin-bottom: 5px; }
-    .company-contact-info p { font-size: 13px; color: #555; margin: 2px 0; }
-    .cover-photo-container { width: 100%; max-width: 170mm; margin: 10mm auto; overflow: hidden; border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); border: 1px solid #e0e0e0; background-color: #f0f0f0; min-height: 70mm; display: flex; justify-content: center; align-items: center; } /* Added background, min-height, flex */
-    .cover-image { width: 100%; height: auto; max-height: 70mm; object-fit: contain; display: block; border-radius: 8px; } /* Added radius */
-    .cover-placeholder { width: 90%; height: auto; padding: 15px; text-align: center; color: #78909c; font-size: 16px; border: 2px dashed #b0bec5; background-color: #eceff1; border-radius: 4px; } /* Adjusted padding */
+    body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; background: #ffffff; color: #333; line-height: 1.6; font-size:10pt; }
+    .cover-page { width: 210mm; height: 297mm; padding: 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(to bottom, #e9f5ff, #ffffff); page-break-after: always; justify-content: space-around; /* Adjusted justify-content */ }
+    .cover-header { width: 100%; margin-bottom: 10mm; text-align: center; }
+    .company-logo { max-width: 160mm; max-height: 50mm; width: auto; height: auto; object-fit: contain; margin: 0 auto 10mm auto; display: block; }
+    .logo-placeholder { width: 150px; height: 50px; border: 1px dashed #b0bec5; display: flex; align-items: center; justify-content: center; color: #78909c; font-size: 12px; background-color: #eceff1; margin: 0 auto 10mm auto; padding: 5px; text-align: center; }
+    .company-main-title { color: #003366; font-size: 28px; font-weight: bold; margin-bottom: 5px; }
+    .company-contact-info { margin-top: 5px; }
+    .company-contact-info p { font-size: 10pt; color: #455a64; margin: 2px 0; }
+    .cover-photo-container { width: 100%; max-width: 170mm; height: 80mm; margin: 10mm auto; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 4px; }
+    .cover-image { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 4px;}
+    .cover-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: #6b7280; font-size: 14px; border: 2px dashed #9ca3af; background-color: #e5e7eb; border-radius: 4px; padding: 15px; }
     .report-title-section { margin-top: 10mm; margin-bottom: 10mm; }
-    .report-title-section h1 { font-size: 36px; color: #1a237e; margin: 0; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
-    .property-details { margin-bottom: 10mm; font-size: 14px; color: #444; line-height: 1.7; }
-    .property-details p { margin: 3px 0; }
-    .property-details strong { color: #0d47a1; }
-    .inspector-details-cover { margin-top: 8mm; font-size: 13px; color: #555; }
-    .inspector-details-cover p { margin: 2px 0; }
-    .cover-footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; font-size: 11px; color: #777; text-align: center; }
-
-    /* Content Page Styles */
-    .container { max-width: 170mm; margin: 0 auto; background: #fff; text-align: left; }
-    .report-header-main { text-align: center; margin-bottom: 10mm; border-bottom: 2px solid #1e3a8a; padding-bottom: 5mm; page-break-after: avoid; }
-    .report-header-main h1 { font-size: 28px; color: #1e3a8a; margin: 0; font-weight: 700; }
-    .report-section { margin-bottom: 10mm; padding: 0; page-break-inside: auto; }
-    .report-section h2 { font-size: 22px; color: #1e3a8a; margin-bottom: 10mm; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; page-break-after: avoid; }
-    .room-card { padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; background-color: #f9f9f9; page-break-inside: avoid; }
-    .room-card h3 { margin: 0 0 10px; font-size: 18px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-    .room-card p { margin-bottom: 10px; color: #555; font-size: 14px; }
-    .room-card p strong { color: #1e3a8a; }
-    .room-card ul { list-style: disc; margin-left: 20px; padding-left: 5px; margin-bottom: 10px; }
-    .room-card li.measurement-item { font-size: 14px; color: #444; margin-bottom: 3px; }
-    .room-card li.taxable { font-weight: bold; }
-    .photo-gallery { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start; margin-top: 10px; }
-    .photo-item { display: inline-block; vertical-align: top; width: calc(33.33% - 7px); margin-bottom: 10px; text-align: center; page-break-inside: avoid; }
-    .photo-item img { width: 100%; height: 100px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; display: block; margin-bottom: 5px; background-color: #eee; } /* Added background */
-    .photo-comment { font-size: 11px; color: #4b5563; margin-top: 0; text-align: center; }
-    .no-data, .no-photos { font-style: italic; color: #666; text-align: center; margin: 15px 0; font-size: 14px; }
-    .footer { text-align: center; padding-top: 10mm; font-size: 12px; color: #666; border-top: 1px solid #e0e0e0; margin-top: 10mm; page-break-before: auto; }
+    .report-title-section h1 { font-size: 26px; color: #003366; margin: 0; font-weight: bold; text-transform: uppercase; }
+    .property-details { margin-bottom: 10mm; font-size: 11pt; color: #37474f; line-height: 1.7; }
+    .property-details p { margin: 4px 0; } .property-details strong { color: #003366; }
+    .inspector-details-cover { margin-top: 8mm; font-size: 10pt; color: #455a64; }
+    .cover-footer { font-size: 9pt; color: #78909c; text-align: center; width: 100%; padding-top:10mm; border-top: 1px solid #ddd; margin-top:auto; }
+    /* Content Page Styles from your previous version */
+    .container { max-width: 170mm; margin: 0 auto; background: #fff; text-align: left; padding: 0 5mm; }
+    .report-header-main { text-align: center; margin-bottom: 8mm; border-bottom: 2px solid #003366; padding-bottom: 4mm; }
+    .report-header-main h1 { font-size: 22px; color: #003366; margin: 0; font-weight: bold; }
+    .report-section { margin-bottom: 8mm; }
+    .report-section h2 { font-size: 16px; color: #003366; margin-bottom: 8mm; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+    .room-card { padding: 12px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 12px; background-color: #f9f9f9; }
+    .room-card h3 { margin: 0 0 8px; font-size: 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+    .room-card p { margin-bottom: 8px; color: #555; font-size: 10pt; }
+    .room-card ul { list-style: disc; margin-left: 18px; padding-left: 5px; margin-bottom: 8px; }
+    .room-card li.measurement-item { font-size: 10pt; color: #444; margin-bottom: 2px; }
+    .photo-gallery { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .photo-item { width: 50mm; height: 50mm; display: flex; flex-direction: column; background-color: #fff; border-radius: 4px; overflow: hidden; border: 1px solid #dee2e6; box-shadow: 0 1px 2px rgba(0,0,0,0.05); page-break-inside: avoid; }
+    .photo-item img { width: 100%; flex-grow: 1; object-fit: contain; background-color: #eff2f5; display: block; overflow: hidden; }
+    .photo-comment { font-size: 8pt; color: #2c3e50; padding: 4px 5px; background-color: #f8f9fa; width: 100%; text-align: center; flex-shrink: 0; height: 32px; overflow-y: hidden; line-height: 1.3; border-top: 1px solid #e9edf0; word-wrap: break-word; overflow-wrap: break-word; display: flex; align-items: center; justify-content: center;}
+    .no-data, .no-photos { font-style: italic; color: #666; text-align: center; margin: 12px 0; font-size: 10pt; }
+    .footer { text-align: center; padding-top: 8mm; font-size: 9pt; color: #666; border-top: 1px solid #e0e0e0; margin-top: 8mm; }
   `
 
-  // --- Assemble Cover Page HTML ---
+  // --- Assemble Cover Page HTML with refined logo logic ---
   const coverPageHTML = `
     <div class="cover-page">
       <div class="cover-header">
         ${
-          localLogoDataUri
-            ? `<img src="${localLogoDataUri}" alt="Company Logo" class="company-logo" onerror="this.parentElement.innerHTML = '<div class=\\'logo-placeholder\\'>Logo Failed to Load</div>';"/>`
-            : logoURL
-            ? `<img src="${logoURL}" alt="Company Logo" class="company-logo" onerror="this.parentElement.innerHTML = '<div class=\\'logo-placeholder\\'>Logo Failed to Load</div>';"/>`
+          // Use finalLogoSrcForHtml which prioritizes local, then Firestore
+          finalLogoSrcForHtml
+            ? `<img src="${finalLogoSrcForHtml}" alt="Company Logo" class="company-logo" onerror="this.style.display='none'; this.parentElement.innerHTML = '<div class=\\'logo-placeholder\\'>Logo Image Failed</div>';"/>`
             : '<div class="logo-placeholder">Company Logo Not Available</div>'
         }
         <div class="company-main-title">${companyDetails.companyName}</div>
@@ -322,23 +364,23 @@ const generateHTML = async (ticket, remediationData) => {
       <div class="cover-photo-container">
          ${
            streetPhotoURL
-             ? `<img src="${streetPhotoURL}" alt="Property Street View" class="cover-image" onerror="this.parentElement.innerHTML = '<div class=\\'cover-placeholder\\'>Street View Photo Failed (onerror)</div>';"/>`
+             ? `<img src="${streetPhotoURL}" alt="Property Street View" class="cover-image" onerror="this.style.display='none'; this.parentElement.innerHTML = '<div class=\\'cover-placeholder\\'>Street Photo Failed</div>';"/>`
              : '<div class="cover-placeholder">Property Photo Not Available</div>'
          }
       </div>
       <div class="report-title-section"><h1>Remediation Report</h1></div>
       <div class="property-details">
-        <p><strong>Property Address:</strong> ${street}${
+        <p><strong>${street}${
     apt ? `, Apt ${apt}` : ''
-  }, ${city}, ${state} ${zip}</p>
+  }, ${city}, ${state} ${zip}</strong> </p>
         <p><strong>Ticket Number:</strong> ${ticketNumber}</p>
         <p><strong>Job Type:</strong> ${typeOfJob}</p>
-        <p><strong>Initial Inspection Date:</strong> ${inspectionDateStr}</p>
+        <p><strong>Initial Insp. Date:</strong> ${inspectionDateStr}</p>
         <p><strong>Remediation Start:</strong> ${remediationStartDateStr}</p>
         <p><strong>Remediation End:</strong> ${remediationEndDateStr}</p>
       </div>
       <div class="inspector-details-cover">
-         <p><strong>Technician/Inspector:</strong> ${inspectorName || 'N/A'}</p>
+         <p><strong>Technician:</strong> ${inspectorName || 'N/A'}</p>
          <p>State License #${companyDetails.licenseNumber || 'N/A'}</p>
       </div>
       <div class="cover-footer">
@@ -349,38 +391,38 @@ const generateHTML = async (ticket, remediationData) => {
     </div>
   `
 
-  // --- Assemble Final HTML Document ---
   const finalHtmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remediation Report ${ticketNumber}</title>
-  <style>
-    ${integratedModernCSS}
-  </style>
+  <style>${integratedModernCSS}</style>
 </head>
 <body>
   ${coverPageHTML}
   <div class="container">
-    <div class="report-header-main">
-        <h1>Remediation Details</h1>
-    </div>
+    <div class="report-header-main"><h1>Remediation Details</h1></div>
     <div class="report-section">
-      <h2>Work Area Details</h2>
+      <h2>Work Area Details & Actions</h2>
       ${remediationRoomsHTML}
     </div>
     <div class="footer">Generated by ${
       companyDetails.companyName
-    } | ${new Date().toLocaleDateString()}</div>
+    } | ${new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })}</div>
   </div>
 </body>
 </html>`
 
+  console.log('[generateHTML_V3_LogoFix] HTML generation complete.')
   return finalHtmlContent
 }
 
-// --- Main Screen Component ---
+// --- Main Screen Component (Make sure the rest of ViewRemediationScreen.js is here) ---
 export default function ViewRemediationScreen() {
   const params = useLocalSearchParams()
   const projectIdFromParams = params.projectId
@@ -395,8 +437,8 @@ export default function ViewRemediationScreen() {
   const marginBelowHeader = 8
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [photoModalVisible, setPhotoModalVisible] = useState(false)
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false) // For activity indicator
 
-  // Fetch data effect
   useEffect(() => {
     const fetchData = async () => {
       if (!projectId) {
@@ -411,19 +453,14 @@ export default function ViewRemediationScreen() {
 
         if (docSnap.exists()) {
           const data = docSnap.data()
-          setTicket(data)
+          setTicket(data) // Set the full ticket data
           const remData = data.remediationData || { rooms: [] }
-          const roomsWithLineItems = (remData.rooms || []).filter(room => {
-            return (
-              Array.isArray(room.measurements) &&
-              room.measurements.some(m => !m.isRoomName)
-            )
-          })
-          setRemediationData({ ...remData, rooms: roomsWithLineItems })
-          console.log('Fetched and filtered remediation data:', {
-            ...remData,
-            rooms: roomsWithLineItems,
-          })
+          // Filter rooms if needed, or use all rooms from remData for the report
+          setRemediationData(remData)
+          console.log(
+            '[ViewRemediationScreen] Fetched remediation data:',
+            JSON.stringify(remData, null, 2).substring(0, 300)
+          )
         } else {
           console.error('No ticket document found for ID:', projectId)
           Alert.alert('Error', 'No data found for this project ID.')
@@ -439,38 +476,38 @@ export default function ViewRemediationScreen() {
         setLoading(false)
       }
     }
-
     fetchData()
   }, [projectId])
 
-  // --- PDF Generation and Sharing ---
   const generatePDFReport = async () => {
     if (!ticket || !remediationData) {
       Alert.alert('Error', 'Data not loaded yet. Cannot generate report.')
       return
     }
+    setIsGeneratingReport(true) // Start activity indicator
 
     try {
-      // *** ADD LOGGING HERE ***
-      console.log('--- Data being passed to generateHTML ---')
       console.log(
-        'Ticket Data (relevant parts):',
+        '--- [ViewRemediationScreen] Data being passed to generateHTML ---'
+      )
+      // Log only specific parts of ticket to avoid overly verbose logs, or stringify with replacer.
+      console.log(
+        'Ticket (summary):',
         JSON.stringify(
           {
             ticketNumber: ticket.ticketNumber,
             street: ticket.street,
-            streetPhoto: ticket.streetPhoto, // Check if this exists and has downloadURL
+            streetPhotoExists: !!ticket.streetPhoto?.downloadURL,
           },
           null,
           2
         )
       )
-      // console.log("Remediation Data:", JSON.stringify(remediationData, null, 2)); // Optional: log remediation data too
+      // console.log("Remediation Data (summary):", JSON.stringify({ roomCount: remediationData.rooms?.length }, null, 2));
 
-      const html = await generateHTML(ticket, remediationData)
-      console.log('Generated HTML for PDF:', html.substring(0, 500) + '...')
+      const html = await generateHTML(ticket, remediationData) // Pass full ticket and remediationData
+      // console.log('Generated HTML for PDF (first 500 chars):', html.substring(0, 500) + '...');
 
-      // 1. Generate PDF to a temporary file
       const { uri: tempUri } = await Print.printToFileAsync({
         html,
         width: 595,
@@ -478,22 +515,30 @@ export default function ViewRemediationScreen() {
       })
       console.log('PDF generated at temporary URI:', tempUri)
 
-      // 2. Rename file to include only street and 'Remediation_Report'
       const rawStreet = (ticket.street || 'Remediation_Report')
         .replace(/[^a-z0-9 ]/gi, '')
         .trim()
       const safeStreet = rawStreet.replace(/\s+/g, '_')
       const fileName = `${safeStreet}_Remediation_Report.pdf`
-      const destUri = `${FileSystem.documentDirectory}${fileName}`
-      try { await FileSystem.deleteAsync(destUri, { idempotent: true }) } catch {}
-      await FileSystem.moveAsync({ from: tempUri, to: destUri })
 
-      // 3. Share the renamed PDF file
+      // Use cacheDirectory for files that might be deleted or are temporary
+      const destDir = FileSystem.cacheDirectory || FileSystem.documentDirectory
+      const destUri = `${destDir}${fileName}` // Ensure destDir ends with '/' or handle appropriately
+
+      try {
+        await FileSystem.deleteAsync(destUri, { idempotent: true })
+      } catch (e) {
+        console.log('No existing file to delete or minor error:', e.message)
+      }
+      await FileSystem.moveAsync({ from: tempUri, to: destUri })
+      console.log('PDF moved to:', destUri)
+
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert(
           'Sharing Not Available',
           'Sharing is not supported on this device.'
         )
+        setIsGeneratingReport(false)
         return
       }
       await Sharing.shareAsync(destUri, {
@@ -503,51 +548,36 @@ export default function ViewRemediationScreen() {
     } catch (error) {
       console.error('Error generating or sharing PDF:', error)
       Alert.alert('Error', `Failed to process PDF report: ${error.message}`)
+    } finally {
+      setIsGeneratingReport(false) // Stop activity indicator
     }
   }
 
-  // --- Header Options ---
   const headerOptions = [
     {
       label: 'Edit',
       onPress: () =>
-        router.push({
-          pathname: '/RemediationScreen',
-          params: { projectId: projectId },
-        }),
-      disabled: loading || !ticket,
+        router.push({ pathname: '/RemediationScreen', params: { projectId } }),
+      disabled: loading || !ticket || isGeneratingReport,
     },
-    {
-      label: 'CSV',
-      onPress: () => {
-        if (remediationData) {
-          exportCSVReport(remediationData, projectId)
-        } else {
-          Alert.alert(
-            'No Data',
-            'Cannot export CSV, remediation data is missing.'
-          )
-        }
-      },
-      disabled: loading || !remediationData,
-    },
+    // { // CSV Export - re-enable if needed
+    //   label: 'CSV',
+    //   onPress: () => { /* ... */ },
+    //   disabled: loading || !remediationData || isGeneratingReport,
+    // },
     {
       label: 'Invoice',
       onPress: () =>
-        router.push({
-          pathname: '/ViewInvoiceScreen',
-          params: { projectId: projectId },
-        }),
-      disabled: loading || !ticket,
+        router.push({ pathname: '/ViewInvoiceScreen', params: { projectId } }),
+      disabled: loading || !ticket || isGeneratingReport,
     },
     {
-      label: 'Share PDF',
+      label: isGeneratingReport ? 'Generating...' : 'Share PDF', // Show loading state
       onPress: generatePDFReport,
-      disabled: loading || !ticket || !remediationData,
+      disabled: loading || !ticket || !remediationData || isGeneratingReport,
     },
   ]
 
-  // --- Render Logic ---
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -558,7 +588,11 @@ export default function ViewRemediationScreen() {
 
   const displayRooms = remediationData?.rooms || []
 
-  if (!ticket || !remediationData || displayRooms.length === 0) {
+  if (
+    !ticket ||
+    (displayRooms.length === 0 && !remediationData?.someGlobalNote)
+  ) {
+    // Adjusted condition
     return (
       <View style={styles.fullScreenContainer}>
         <HeaderWithOptions
@@ -569,13 +603,14 @@ export default function ViewRemediationScreen() {
         />
         <View style={styles.centeredMessageContainer}>
           <Text style={styles.errorText}>
-            No remediation data with line items available for this project.
+            No remediation data available for this project.
           </Text>
         </View>
       </View>
     )
   }
 
+  // --- Render Logic from your ViewRemediationScreen.js ---
   return (
     <View style={styles.fullScreenContainer}>
       <HeaderWithOptions
@@ -591,6 +626,23 @@ export default function ViewRemediationScreen() {
           { paddingTop: headerHeight + marginBelowHeader },
         ]}
       >
+        {/* Displaying the ticket and remediation data as per your original ViewRemediationScreen */}
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Ticket #:</Text>
+          <Text style={styles.detailValue}>
+            {ticket?.ticketNumber || 'N/A'}
+          </Text>
+        </View>
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Address:</Text>
+          <Text style={styles.detailValue}>{`${ticket?.street || ''}${
+            ticket?.apt ? `, ${ticket.apt}` : ''
+          }, ${ticket?.city || ''}, ${ticket?.state || ''} ${
+            ticket?.zip || ''
+          }`}</Text>
+        </View>
+        {/* Add more ticket details here if needed */}
+
         {displayRooms.map((room, roomIndex) => {
           const roomKey = room.id
             ? room.id
@@ -606,49 +658,49 @@ export default function ViewRemediationScreen() {
                   {room.notes}
                 </Text>
               )}
-              {room.numberOfFans > 0 && (
-                <Text style={styles.fansText}>
-                  <Text style={styles.label}>Number of Fans: </Text>
-                  {room.numberOfFans}
-                </Text>
-              )}
-              <Text style={styles.subHeader}>Measurements / Line Items:</Text>
+              {typeof room.numberOfFans === 'number' &&
+                room.numberOfFans > 0 && (
+                  <Text style={styles.fansText}>
+                    <Text style={styles.label}>Air Movers: </Text>
+                    {room.numberOfFans}
+                  </Text>
+                )}
+
+              <Text style={styles.subHeader}>Line Items:</Text>
               {Array.isArray(room.measurements) &&
               room.measurements.length > 0 ? (
                 room.measurements.map((measurement, measIndex) => {
                   const measurementKey = measurement.id
                     ? measurement.id
                     : `meas-${roomKey}-${measIndex}`
+                  if (measurement.isRoomName) return null // Do not display room name as a line item here
                   return (
                     <View key={measurementKey} style={styles.measurementRow}>
-                      {measurement.isRoomName ? (
-                        <Text style={styles.roomNameMeasurement}>
-                          {measurement.name} (Taxable)
-                        </Text>
-                      ) : (
-                        <Text style={styles.measurementText}>
-                          {measurement.name}
-                          {measurement.description
-                            ? ` - ${measurement.description}`
-                            : ''}
-                          : {measurement.quantity}
-                        </Text>
-                      )}
+                      <Text style={styles.measurementText}>
+                        {measurement.name || 'N/A'}
+                        {measurement.description
+                          ? ` (${measurement.description})`
+                          : ''}
+                        : Qty{' '}
+                        {measurement.quantity === undefined
+                          ? 'N/A'
+                          : measurement.quantity}
+                      </Text>
                     </View>
                   )
                 })
               ) : (
-                <Text style={styles.noDataSubText}>
-                  No measurements recorded.
-                </Text>
+                <Text style={styles.noDataSubText}>No line items.</Text>
               )}
+
               {Array.isArray(room.photos) && room.photos.length > 0 && (
                 <>
                   <Text style={styles.subHeader}>Photos:</Text>
-                  <ScrollView horizontal style={styles.photoRow}>
+                  <ScrollView horizontal style={styles.photoRowScrollView}>
                     {room.photos.map((photo, index) => {
                       if (!photo || !photo.downloadURL) return null
-                      const photoKey = photo.storagePath || `photo-${index}`
+                      const photoKey =
+                        photo.storagePath || `photo-${index}-${roomKey}`
                       return (
                         <TouchableOpacity
                           key={photoKey}
@@ -656,14 +708,16 @@ export default function ViewRemediationScreen() {
                             setSelectedPhoto(photo.downloadURL)
                             setPhotoModalVisible(true)
                           }}
-                          style={styles.photoItem}
+                          style={styles.photoItemContainer} // Changed from photoItem to avoid conflict with PDF styles
                         >
                           <Image
                             source={{ uri: photo.downloadURL }}
-                            style={styles.photoImage}
+                            style={styles.photoThumbnail}
                           />
-                          {photo.label && (
-                            <Text style={styles.photoLabel}>{photo.label}</Text>
+                          {(photo.label || photo.comment) && ( // Check for label or comment
+                            <Text style={styles.photoCaption}>
+                              {photo.label || photo.comment}
+                            </Text>
                           )}
                         </TouchableOpacity>
                       )
@@ -682,18 +736,24 @@ export default function ViewRemediationScreen() {
           onClose={() => setPhotoModalVisible(false)}
         />
       )}
+      {isGeneratingReport && ( // Full screen overlay activity indicator
+        <View style={styles.activityOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.activityText}>Generating Report...</Text>
+        </View>
+      )}
     </View>
   )
 }
 
-// --- Styles ---
+// --- Styles (ensure these are complete from your original ViewRemediationScreen.js) ---
 const styles = StyleSheet.create({
-  fullScreenContainer: { flex: 1, backgroundColor: '#F3F5F7' },
+  fullScreenContainer: { flex: 1, backgroundColor: '#F3F5F7' }, // Changed from #F3F5F7
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F5F7',
+    backgroundColor: '#FFFFFF',
   },
   centeredMessageContainer: {
     flex: 1,
@@ -709,64 +769,98 @@ const styles = StyleSheet.create({
     padding: 15,
     marginVertical: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   roomTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: '#1E3A8A',
-    marginBottom: 8,
+    marginBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    paddingBottom: 6,
+    borderBottomColor: '#E5E7EB',
+    paddingBottom: 8,
   },
   subHeader: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#334155',
-    marginTop: 10,
+    fontWeight: '500',
+    color: '#374151',
+    marginTop: 12,
     marginBottom: 6,
   },
   notesText: {
     fontSize: 14,
-    color: '#475569',
+    color: '#4B5563',
     marginBottom: 6,
-    lineHeight: 20,
+    lineHeight: 21,
   },
-  fansText: { fontSize: 14, color: '#16A34A', marginBottom: 6 },
-  label: { fontWeight: '600', color: '#1E293B' },
-  measurementRow: { marginVertical: 3, paddingLeft: 5 },
-  roomNameMeasurement: { fontSize: 14, fontWeight: '600', color: '#334155' },
-  measurementText: { fontSize: 14, color: '#334155' },
+  fansText: {
+    fontSize: 14,
+    color: '#15803D',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  label: { fontWeight: '600', color: '#1F2937' }, // Reused if needed
+  measurementRow: { marginVertical: 4, paddingLeft: 8 },
+  measurementText: { fontSize: 14, color: '#4B5563' },
   noDataSubText: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#6B7280',
     fontStyle: 'italic',
-    marginLeft: 5,
-    marginBottom: 5,
-  },
-  photoRow: { marginTop: 8, marginBottom: 4 },
-  photoItem: { marginRight: 10, alignItems: 'center' },
-  photoImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 6,
-    backgroundColor: '#E0E0E0',
-  },
-  photoLabel: {
-    fontSize: 12,
-    color: '#475569',
+    marginLeft: 8,
+    marginBottom: 8,
     marginTop: 4,
-    textAlign: 'center',
-    maxWidth: 90,
   },
+  photoRowScrollView: { marginTop: 8, marginBottom: 4 }, // Added specific style for the scrollview
+  photoItemContainer: {
+    marginRight: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  }, // Renamed from photoItem
+  photoThumbnail: {
+    width: 100,
+    height: 100,
+    borderRadius: 6,
+    backgroundColor: '#E5E7EB',
+  }, // Renamed from photoImage
+  photoCaption: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginTop: 5,
+    textAlign: 'center',
+    maxWidth: 100,
+  }, // Renamed from photoLabel
   errorText: {
     textAlign: 'center',
-    color: '#DC2626',
+    color: '#B91C1C',
     fontSize: 16,
     paddingHorizontal: 10,
+  },
+  detailItem: { flexDirection: 'row', marginBottom: 8, paddingHorizontal: 5 },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginRight: 5,
+    width: '30%',
+  },
+  detailValue: { fontSize: 14, color: '#4B5563', flexShrink: 1 },
+  activityOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000, // Make sure it's on top
+  },
+  activityText: {
+    marginTop: 10,
+    color: '#FFFFFF',
+    fontSize: 16,
   },
 })

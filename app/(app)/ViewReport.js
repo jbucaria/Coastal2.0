@@ -126,10 +126,10 @@ const ViewReportScreen = () => {
       }
     }
     try {
-      // Check if the file exists
-      const fileInfo = await FileSystem.getInfoAsync(pdfUri)
+      // Check if the file exists at the share URI
+      const fileInfo = await FileSystem.getInfoAsync(shareUri)
       if (!fileInfo.exists) {
-        console.error('PDF file does not exist at:', pdfUri)
+        console.error('PDF file does not exist at:', shareUri)
         return
       }
       console.log('File exists, size:', fileInfo.size, 'bytes')
@@ -143,8 +143,8 @@ const ViewReportScreen = () => {
       }
 
       // Attempt to share
-      console.log('Initiating share for PDF:', pdfUri)
-      await Sharing.shareAsync(pdfUri, {
+      console.log('Initiating share for PDF:', shareUri)
+      await Sharing.shareAsync(shareUri, {
         mimeType: 'application/pdf',
         dialogTitle: `Share Inspection Report ${ticket?.ticketNumber || 'N/A'}`,
         UTI: 'com.adobe.pdf', // iOS-specific UTI for PDF
