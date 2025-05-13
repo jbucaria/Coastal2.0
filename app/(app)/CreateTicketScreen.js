@@ -66,8 +66,11 @@ const initialTicketStatus = {
   customerNumber: '',
   customerEmail: '',
   customerId: '',
-  homeOwnerName: '',
+  homeOwnerName: '',  // Optional homeowner contact
   homeOwnerNumber: '',
+  builderSupervisorName: '',  // Supervisor of the builder contact
+  builderSupervisorPhone: '',
+  lotNumber: '',  // Lot number for the property
   inspectorName: '',
   reason: '',
   hours: '',
@@ -258,6 +261,7 @@ const CreateTicketScreen = () => {
 
   // Address state (from AddressModal)
   const [street, setStreet] = useState('')
+  const [lotNumber, setLotNumber] = useState('') // Lot number field
   const [city, setCity] = useState('')
   const [stateField, setStateField] = useState('')
   const [zip, setZip] = useState('')
@@ -499,14 +503,17 @@ const CreateTicketScreen = () => {
       ...newTicket,
       startTime: startTime,
       endTime: endTime,
-      street: street, // Ensure address fields are included
+      street: street,            // Address fields
+      lotNumber: lotNumber,      // Lot number, optional
       city: city,
       state: stateField,
       zip: zip,
-      // Also include job type, vacancy, note if not already in newTicket
+      // Ticket-specific details
       typeOfJob: jobType,
       occupied: vacancy === 'occupied',
-      note: newNote, // Assuming a 'note' field exists or is handled by generateTicket
+      note: newNote,             // General note
+      builderSupervisorName: newTicket.builderSupervisorName,
+      builderSupervisorPhone: newTicket.builderSupervisorPhone,
     }
 
     // Add validation for required fields before creating
@@ -791,6 +798,12 @@ const CreateTicketScreen = () => {
                   onChangeText={setZip}
                   keyboardType="numeric"
                 />
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Lot Number (optional)"
+                  value={lotNumber}
+                  onChangeText={setLotNumber}
+                />
               </View>
             )}
 
@@ -901,6 +914,30 @@ const CreateTicketScreen = () => {
                         <Text style={styles.selectedCustomerDetails}>
                           {newTicket.customerNumber}
                         </Text>
+                        {/* Supervisor fields for this ticket */}
+                        <TextInput
+                          style={styles.inputField}
+                          placeholder="Builder Supervisor Name"
+                          value={newTicket.builderSupervisorName}
+                          onChangeText={text =>
+                            setNewTicket(prev => ({
+                              ...prev,
+                              builderSupervisorName: text,
+                            }))
+                          }
+                        />
+                        <TextInput
+                          style={styles.inputField}
+                          placeholder="Builder Supervisor Phone"
+                          value={newTicket.builderSupervisorPhone}
+                          onChangeText={text =>
+                            setNewTicket(prev => ({
+                              ...prev,
+                              builderSupervisorPhone: formatPhoneNumber(text),
+                            }))
+                          }
+                          keyboardType="phone-pad"
+                        />
                       </View>
                     )}
                   </View>

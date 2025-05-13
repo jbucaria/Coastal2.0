@@ -113,6 +113,8 @@ export const handleCreateTicket = async (
     }
 
     const composedAddress = `${newTicket.street}${
+      newTicket.lotNumber ? ' Lot ' + newTicket.lotNumber : ''
+    }${
       newTicket.apt ? ' Apt ' + newTicket.apt : ''
     }, ${newTicket.city}, ${newTicket.state} ${newTicket.zip}`
 
