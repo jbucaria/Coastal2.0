@@ -425,6 +425,18 @@ const TicketDetailsScreen = () => {
         photo={selectedPhoto}
         onClose={closePhoto}
       />
+      {/* Floating Action Button to generate dry letter */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() =>
+          router.push({
+            pathname: '/DryLetterScreen',
+            params: { projectId: ticket.id },
+          })
+        }
+      >
+        <Text style={styles.fabText}>Dry Letter</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -601,5 +613,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: ACCENT_COLOR,
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    elevation: 5,
+  },
+  fabText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 })

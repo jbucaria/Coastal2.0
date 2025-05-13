@@ -55,3 +55,20 @@ export function formatAddress({ street, city, state, zip }) {
   }
   return parts.join(', ')
 }
+
+// Formats a Date object into 'Month DayOrdinal, Year' (e.g., 'April 3rd, 2025')
+export function formatDateWithOrdinal(date) {
+  if (!(date instanceof Date)) return ''
+  const month = date.toLocaleString('default', { month: 'long' })
+  const day = date.getDate()
+  const year = date.getFullYear()
+  const ordinal = getOrdinal(day)
+  return `${month} ${day}${ordinal}, ${year}`
+}
+
+// Returns the ordinal suffix for a given day number
+function getOrdinal(n) {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return s[(v - 20) % 10] || s[v] || s[0]
+}
