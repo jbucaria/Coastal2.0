@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { firestore } from '@/firebaseConfig'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions'
+import useTicket from '@/hooks/useTicket'
 import { formatDateWithOrdinal } from '@/utils/helpers'
 import { Share } from 'react-native'
 import * as Print from 'expo-print'
@@ -30,6 +31,8 @@ const DryLetterListScreen = () => {
   const [loading, setLoading] = useState(true)
   const [selectedLetter, setSelectedLetter] = useState(null)
   const [headerHeight, setHeaderHeight] = useState(0)
+  // Fetch ticket data for naming
+  const { ticket } = useTicket(projectId)
 
   useEffect(() => {
     const fetchLetters = async () => {
@@ -81,8 +84,15 @@ const DryLetterListScreen = () => {
           </body>
         </html>
       `
+      // Generate PDF and rename file to include property street and 'Dry Letter'
       const { uri } = await Print.printToFileAsync({ html })
-      await Share.share({ url: uri, title: 'Dry Letter' })
+      const rawStreet = ticket?.street || 'DryLetter'
+      const safeName = rawStreet.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')
+      const fileName = `${safeName}_Dry_Letter.pdf`
+      const destUri = `${FileSystem.documentDirectory}${fileName}`
+      try { await FileSystem.deleteAsync(destUri, { idempotent: true }) } catch {}
+      await FileSystem.moveAsync({ from: uri, to: destUri })
+      await Share.share({ url: destUri, title: fileName })
     } catch (err) {
       console.error('Error sharing PDF:', err)
       Alert.alert('Error', 'Failed to generate PDF for sharing.')

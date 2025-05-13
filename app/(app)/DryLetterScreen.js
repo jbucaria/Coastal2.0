@@ -107,8 +107,18 @@ const DryLetterScreen = () => {
           </body>
         </html>
       `
+      // Generate PDF and rename file to include property street and 'Dry Letter'
       const { uri } = await Print.printToFileAsync({ html })
-      await Share.share({ url: uri, title: 'Dry Letter' })
+      // Create a safe file name: remove special chars, spaces to underscores
+      const rawStreet = ticket.street || 'DryLetter'
+      const safeName = rawStreet.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')
+      const fileName = `${safeName}_Dry_Letter.pdf`
+      const destUri = `${FileSystem.documentDirectory}${fileName}`
+      // Remove existing file if any, then move
+      try { await FileSystem.deleteAsync(destUri, { idempotent: true }) } catch {}
+      await FileSystem.moveAsync({ from: uri, to: destUri })
+      // Share the PDF
+      await Share.share({ url: destUri, title: fileName })
     } catch (err) {
       console.error('Error sharing PDF:', err)
       Alert.alert('Error', 'Failed to generate PDF for sharing.')
