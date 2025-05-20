@@ -587,7 +587,10 @@ const RemediationScreen = () => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContainer}
+            contentContainerStyle={[
+              styles.scrollContainer, // Your existing styles (padding: 16, paddingBottom: 120)
+              { paddingTop: headerHeight + marginBelowHeader }, // Add dynamic paddingTop
+            ]}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { y: scrollY } } }],
               { useNativeDriver: false }
@@ -613,28 +616,7 @@ const RemediationScreen = () => {
                     multiline
                   />
                 </View>
-                <View style={styles.section}>
-                  <View style={styles.fansRow}>
-                    <Icon
-                      name="fan"
-                      size={24}
-                      color="#17BF63"
-                      style={styles.fanIcon}
-                    />
-                    <Text style={styles.sectionTitle}>
-                      Number of Air Movers
-                    </Text>
-                  </View>
-                  <TextInput
-                    style={styles.numberOfFansInput}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={room.numberOfFans?.toString() || '0'}
-                    onChangeText={text =>
-                      handleNumberOfFansChange(room.id, text)
-                    }
-                  />
-                </View>
+
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Line Items</Text>
