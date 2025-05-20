@@ -551,10 +551,10 @@ const CreateTicketScreen = () => {
     const folder = 'ticketPhotos'
     const photosArray = await pickAndUploadPhotos({ folder, quality: 0.7 })
     if (photosArray.length > 0) {
-      const urls = photosArray.map(photo => photo.downloadURL)
+      // Store both storagePath and downloadURL for each photo
       setNewTicket(prev => ({
         ...prev,
-        ticketPhotos: [...prev.ticketPhotos, ...urls],
+        ticketPhotos: [...prev.ticketPhotos, ...photosArray],
       }))
       Alert.alert('Success', 'Photos added successfully.')
     } else {
@@ -1050,15 +1050,10 @@ const CreateTicketScreen = () => {
                   <Text style={styles.sectionTitle}>Photos</Text>
                   {newTicket.ticketPhotos.length > 0 ? (
                     <RNScrollView horizontal style={styles.photoGallery}>
-                      {newTicket.ticketPhotos.map((photo, index) => (
+                      {newTicket.ticketPhotos.map((photoObj, index) => (
                         <View key={index} style={styles.photoContainer}>
-                          {/* Note: PhotoGallery component needs to handle displaying a single photo */}
-                          {/* and the onRemove callback. The provided PhotoGallery likely expects an array. */}
-                          {/* You might need to adjust PhotoGallery or pass props differently */}
-                          {/* or simply use a standard Image component here. */}
-                          {/* Example using standard Image: */}
                           <Image
-                            source={{ uri: photo }}
+                            source={{ uri: photoObj.downloadURL }}
                             style={styles.thumbnail}
                           />
                           <TouchableOpacity

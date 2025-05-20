@@ -16,24 +16,29 @@ const PhotoGallery = ({ photos, onRemovePhoto, onCommentChange }) => (
     showsHorizontalScrollIndicator={false}
     style={styles.photosContainer}
   >
-    {photos.map((photo, index) => (
-      <View key={`${photo.downloadURL}-${index}`} style={styles.photoWrapper}>
-        <Image source={{ uri: photo.downloadURL }} style={styles.photo} />
-        <TouchableOpacity
-          style={styles.removePhotoButton}
-          onPress={() => onRemovePhoto(index)}
-        >
-          <Text style={styles.removePhotoText}>X</Text>
-        </TouchableOpacity>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="Add comment"
-          value={photo.comment}
-          onChangeText={text => onCommentChange && onCommentChange(index, text)}
-          multiline
-        />
-      </View>
-    ))}
+    {photos.map((photo, index) => {
+      const uri = typeof photo === 'string' ? photo : photo.downloadURL
+      return (
+        <View key={index} style={styles.photoWrapper}>
+          <Image source={{ uri }} style={styles.photo} />
+          <TouchableOpacity
+            style={styles.removePhotoButton}
+            onPress={() => onRemovePhoto(index)}
+          >
+            <Text style={styles.removePhotoText}>X</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Add comment"
+            value={photo.comment}
+            onChangeText={text =>
+              onCommentChange && onCommentChange(index, text)
+            }
+            multiline
+          />
+        </View>
+      )
+    })}
   </ScrollView>
 )
 

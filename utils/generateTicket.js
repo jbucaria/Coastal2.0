@@ -126,28 +126,35 @@ export const handleCreateTicket = async (
       endTime: endTime.toISOString(),
     }
 
-    // Upload photos with error handling
+    // Upload photos with error handling (skip already-uploaded objects)
     const storage = getStorage()
-    const uploadPromises = newTicket.ticketPhotos.map(async uri => {
-      try {
-        const response = await fetch(uri)
-        const blob = await response.blob()
-        const fileRef = ref(
-          storage,
-          `ticketPhotos/${Date.now()}_${uri.split('/').pop()}`
-        )
-        await uploadBytes(fileRef, blob)
-        return getDownloadURL(fileRef)
-      } catch (error) {
-        console.error('Error uploading photo:', error)
-        throw error
+    const uploadPromises = newTicket.ticketPhotos.map(async photo => {
+      // If already uploaded (has downloadURL and storagePath), reuse it
+      if (
+        photo &&
+        typeof photo === 'object' &&
+        photo.downloadURL &&
+        photo.storagePath
+      ) {
+        return photo
       }
+      // Otherwise, photo is a local URI string
+      const uri = photo
+      const response = await fetch(uri)
+      const blob = await response.blob()
+      const fileName = uri.split('/').pop() || `${Date.now()}.jpg`
+      const storagePath = `ticketPhotos/${Date.now()}_${fileName}`
+      const storageRef = ref(storage, storagePath)
+      await uploadBytes(storageRef, blob)
+      const downloadURL = await getDownloadURL(storageRef)
+      return { storagePath, downloadURL }
     })
-
+    let photoObjects
     try {
-      const photoURLs = await Promise.all(uploadPromises)
-      ticketData.ticketPhotos = photoURLs
+      photoObjects = await Promise.all(uploadPromises)
+      ticketData.ticketPhotos = photoObjects
     } catch (error) {
+      console.error('Error uploading photos:', error)
       Alert.alert('Error', 'Failed to upload one or more photos.')
       setIsSubmitting(false)
       return

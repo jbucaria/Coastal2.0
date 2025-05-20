@@ -384,12 +384,15 @@ const TicketDetailsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Photos</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {ticketPhotos.map((photoUri, index) => (
+              {ticketPhotos.map((photoObj, index) => (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => handlePhotoPress(photoUri)}
+                  onPress={() => handlePhotoPress(photoObj.downloadURL)}
                 >
-                  <Image source={{ uri: photoUri }} style={styles.photo} />
+                  <Image
+                    source={{ uri: photoObj.downloadURL }}
+                    style={styles.photo}
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>

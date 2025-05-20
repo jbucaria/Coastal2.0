@@ -83,12 +83,22 @@ const performDelete = async (ticketId, onTicketDeleted) => {
     const dryCol = collection(firestore, 'tickets', ticketId, 'dryLetters')
     const drySnap = await getDocs(dryCol)
     await Promise.all(drySnap.docs.map(d => deleteDoc(d.ref)))
-    // 8. Delete ticketPhotos URLs
-    for (const url of data.ticketPhotos || []) {
-      const parts = url.split('/o/')
-      if (parts.length > 1) {
-        const enc = parts[1].split('?')[0]
-        await deleteObject(ref(storage, decodeURIComponent(enc)))
+    // 8. Delete ticketPhotos (supports stored objects or URL strings)
+    for (const photo of data.ticketPhotos || []) {
+      let storagePathToDelete = null
+      // If photo is an object with storagePath, use it directly
+      if (photo && typeof photo === 'object' && photo.storagePath) {
+        storagePathToDelete = photo.storagePath
+      } else if (typeof photo === 'string') {
+        // Fallback: derive storage path from URL string
+        const parts = photo.split('/o/')
+        if (parts.length > 1) {
+          const enc = parts[1].split('?')[0]
+          storagePathToDelete = decodeURIComponent(enc)
+        }
+      }
+      if (storagePathToDelete) {
+        await deleteObject(ref(storage, storagePathToDelete))
       }
     }
 
