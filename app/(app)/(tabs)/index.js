@@ -17,7 +17,7 @@ import { TicketCard } from '@/components/TicketCard'
 import { FloatingButton } from '@/components/FloatingButton'
 import useProjectStore from '@/store/useProjectStore'
 import { TicketsHeader } from '@/components/TicketHeader'
-import { CustomCalendar } from '@/components/CustomCalander'
+import { CustomCalendar } from '@/components/CustomCalander' // Assuming CustomCalander is the correct spelling
 
 const TicketsScreen = () => {
   const { setProjectId } = useProjectStore()
@@ -27,7 +27,7 @@ const TicketsScreen = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOption, setSortOption] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isCustomCalendarVisible, setIsCustomCalendarVisible] = useState(false) // State for custom calendar
+  const [isCustomCalendarVisible, setIsCustomCalendarVisible] = useState(false)
   const [headerHeight, setHeaderHeight] = useState(0)
 
   const scrollY = useRef(new Animated.Value(0)).current
@@ -40,7 +40,7 @@ const TicketsScreen = () => {
   useEffect(() => {
     const baseQuery = query(
       collection(firestore, 'tickets'),
-      orderBy('startTime', 'asc')
+      orderBy('startTime', 'asc') // Or consider a more neutral default sort if needed
     )
     const unsubscribe = onSnapshot(
       baseQuery,
@@ -54,6 +54,7 @@ const TicketsScreen = () => {
       },
       error => {
         console.error('Error fetching tickets:', error)
+        setIsLoading(false) // Ensure loading stops on error
       }
     )
     return () => unsubscribe()
@@ -64,8 +65,17 @@ const TicketsScreen = () => {
     if (searchQuery) {
       const queryLower = searchQuery.toLowerCase()
       filtered = filtered.filter(ticket => {
-        const address = ticket.address?.toLowerCase() || ''
-        return address.includes(queryLower)
+        // Ensure address and other searchable fields are checked
+        const address = `${ticket.street || ''} ${ticket.city || ''} ${
+          ticket.state || ''
+        } ${ticket.zip || ''}`.toLowerCase()
+        const clientName = ticket.clientName?.toLowerCase() || ''
+        const ticketNumber = ticket.ticketNumber?.toLowerCase() || ''
+        return (
+          address.includes(queryLower) ||
+          clientName.includes(queryLower) ||
+          ticketNumber.includes(queryLower)
+        )
       })
     } else {
       const startOfDay = new Date(
@@ -86,11 +96,23 @@ const TicketsScreen = () => {
         999
       )
       filtered = filtered.filter(ticket => {
-        if (!ticket.startTime) return false
-        const t = ticket.startTime.toDate
-          ? ticket.startTime.toDate()
-          : new Date(ticket.startTime)
-        return t >= startOfDay && t <= endOfDay
+        let matchesStartTime = false
+        if (ticket.startTime) {
+          const t = ticket.startTime.toDate
+            ? ticket.startTime.toDate()
+            : new Date(ticket.startTime)
+          matchesStartTime = t >= startOfDay && t <= endOfDay
+        }
+
+        let matchesReturnDate = false
+        if (ticket.returnDate) {
+          const r = ticket.returnDate.toDate
+            ? ticket.returnDate.toDate()
+            : new Date(ticket.returnDate)
+          matchesReturnDate = r >= startOfDay && r <= endOfDay
+        }
+
+        return matchesStartTime || matchesReturnDate
       })
     }
 
@@ -100,17 +122,33 @@ const TicketsScreen = () => {
     } else if (sortOption === 'equipmentOnSite') {
       filtered = filtered.filter(t => t.equipmentOnSite === true)
     } else if (sortOption === 'returnNeeded') {
+      // This will further filter the date-matched or search-matched tickets
       filtered = filtered.filter(t => t.status === 'Return Needed')
     }
+    // You might want to add a default sort here if no sortOption is active,
+    // e.g., by startTime, after the primary filtering.
+    // For example:
+    // else {
+    //   filtered.sort((a, b) => {
+    //     const timeA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime || 0);
+    //     const timeB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime || 0);
+    //     return timeA - timeB;
+    //   });
+    // }
 
     setDisplayedTickets(filtered)
   }, [allTickets, searchQuery, selectedDate, sortOption])
 
   const clearFilter = () => {
     setSortOption(null)
+    // Optionally, you might want to reset searchQuery or selectedDate here
+    // depending on the desired UX for "Clear Filter"
   }
 
-  const isClearDisabled = !sortOption
+  const isClearDisabled =
+    !sortOption &&
+    !searchQuery &&
+    selectedDate.toDateString() === new Date().toDateString()
 
   const handleDatePress = () => {
     setIsCustomCalendarVisible(true)
@@ -118,6 +156,7 @@ const TicketsScreen = () => {
 
   const handleCustomDateChange = date => {
     setSelectedDate(date)
+    setSearchQuery('') // Clear search query when a new date is selected
     setIsCustomCalendarVisible(false)
   }
 
@@ -140,16 +179,16 @@ const TicketsScreen = () => {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           selectedDate={selectedDate}
-          showDatePicker={false} // No longer using the built-in picker directly
-          setShowDatePicker={() => {}} // Dummy function
-          onDatePickerChange={() => {}} // Dummy function
+          showDatePicker={false}
+          setShowDatePicker={() => {}}
+          onDatePickerChange={() => {}}
           sortOption={sortOption}
           setSortOption={setSortOption}
           clearFilter={clearFilter}
           isClearDisabled={isClearDisabled}
           onHeightChange={height => setHeaderHeight(height)}
           iconColor="#333"
-          onDatePress={handleDatePress} // Pass the handler to show custom calendar
+          onDatePress={handleDatePress}
         />
         <Animated.ScrollView
           style={styles.scrollView}
@@ -162,17 +201,16 @@ const TicketsScreen = () => {
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled" // Good for scrollviews with inputs/buttons
         >
           {isLoading ? (
-            <Text>Loading tickets...</Text>
+            <View style={styles.centeredMessageContainer}>
+              <Text>Loading tickets...</Text>
+            </View>
           ) : displayedTickets.length > 0 ? (
             displayedTickets.map((ticket, index) => {
               const ticketKey = ticket.id || `ticket-${index}`
-              const containerStyle =
-                index % 2 === 0
-                  ? 'rgba(245,248,250,0.8)'
-                  : 'rgba(255,255,255,0.8)'
-              const timeColor = '#0D47A1'
+              // Ensure TicketCard can handle potentially missing fields in ticket object
               return (
                 <View key={ticketKey}>
                   <TicketCard
@@ -181,16 +219,17 @@ const TicketsScreen = () => {
                       setProjectId(ticket.id)
                       router.push('/TicketDetailsScreen')
                     }}
-                    backgroundColor={containerStyle}
-                    timeColor={timeColor}
+                    // backgroundColor and timeColor are hardcoded, TicketCard should handle defaults if needed
                   />
                 </View>
               )
             })
           ) : (
-            <Text style={styles.noTicketsText}>
-              No tickets match your criteria.
-            </Text>
+            <View style={styles.centeredMessageContainer}>
+              <Text style={styles.noTicketsText}>
+                No tickets match your criteria.
+              </Text>
+            </View>
           )}
         </Animated.ScrollView>
 
@@ -209,15 +248,23 @@ const TicketsScreen = () => {
           </View>
         </Modal>
 
-        <View style={{ position: 'absolute', right: 24, bottom: 60 }}>
+        {/* Floating Action Button */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            right: 24,
+            bottom: Platform.OS === 'ios' ? 80 : 60,
+            opacity: floatingOpacity,
+          }}
+        >
           <FloatingButton
             onPress={() => router.push('/CreateTicketScreen')}
             title="Ticket"
-            animatedOpacity={floatingOpacity}
-            iconName="plus.circle"
+            // animatedOpacity={floatingOpacity} // Pass opacity directly if FloatingButton supports it, or wrap it. Here it's on the parent View.
+            iconName="plus.circle" // Ensure this icon name is valid for your Icon component
             size={32}
           />
-        </View>
+        </Animated.View>
       </View>
     </ImageBackground>
   )
@@ -237,11 +284,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingBottom: 100,
+    paddingBottom: 120, // Increased padding for FAB
+  },
+  centeredMessageContainer: {
+    // Added for centering loading/no tickets text
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50, // Give some space from the header
   },
   noTicketsText: {
     textAlign: 'center',
-    marginTop: 20,
     color: '#666',
     fontSize: 16,
   },
@@ -249,6 +302,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Slightly darker overlay
   },
 })

@@ -41,65 +41,67 @@ const deleteTicket = async (ticketId, onTicketDeleted) => {
 }
 
 const performDelete = async (ticketId, onTicketDeleted) => {
+  const ticketRef = doc(firestore, 'tickets', ticketId)
   try {
-    // 1. Delete any ticketNotes that have projectId == ticketId
+    // 1. Delete ticketNotes
     const notesQuery = query(
       collection(firestore, 'ticketNotes'),
       where('projectId', '==', ticketId)
     )
-    const notesSnapshot = await getDocs(notesQuery)
-    await Promise.all(notesSnapshot.docs.map(noteDoc => deleteDoc(noteDoc.ref)))
+    const notesSnap = await getDocs(notesQuery)
+    await Promise.all(notesSnap.docs.map(n => deleteDoc(n.ref)))
 
-    // 2. Grab the ticket document
-    const ticketRef = doc(firestore, 'tickets', ticketId)
-    const ticketDocSnap = await getDoc(ticketRef)
+    // 2. Load ticket data
+    const ticketDoc = await getDoc(ticketRef)
+    if (!ticketDoc.exists()) throw new Error('Ticket not found')
+    const data = ticketDoc.data()
 
-    if (!ticketDocSnap.exists()) {
-      Alert.alert('Error', 'Ticket does not exist.')
-      return
+    // 3. Delete remediation photos
+    for (const room of data.remediationData?.rooms || []) {
+      for (const p of room.photos || []) {
+        if (p.storagePath) await deleteObject(ref(storage, p.storagePath))
+      }
+    }
+    // 4. Delete inspection photos
+    for (const room of data.inspectionData?.rooms || []) {
+      for (const p of room.photos || []) {
+        if (p.storagePath) await deleteObject(ref(storage, p.storagePath))
+      }
+    }
+    // 5. Delete street photo
+    if (data.streetPhoto?.storagePath) {
+      await deleteObject(ref(storage, data.streetPhoto.storagePath))
+    }
+    // 6. Delete PDFs
+    if (data.inspectionPdfStoragePath) {
+      await deleteObject(ref(storage, data.inspectionPdfStoragePath))
+    }
+    if (data.remediationPdfStoragePath) {
+      await deleteObject(ref(storage, data.remediationPdfStoragePath))
+    }
+    // 7. Delete dryLetters subcollection
+    const dryCol = collection(firestore, 'tickets', ticketId, 'dryLetters')
+    const drySnap = await getDocs(dryCol)
+    await Promise.all(drySnap.docs.map(d => deleteDoc(d.ref)))
+    // 8. Delete ticketPhotos URLs
+    for (const url of data.ticketPhotos || []) {
+      const parts = url.split('/o/')
+      if (parts.length > 1) {
+        const enc = parts[1].split('?')[0]
+        await deleteObject(ref(storage, decodeURIComponent(enc)))
+      }
     }
 
-    const ticketData = ticketDocSnap.data()
-
-    // 2a. If you have "mainPhotos" stored as an array of objects:
-    // Example format: [ { storagePath: 'remediationPhotos/...', downloadURL: '...' }, ... ]
-    const mainPhotos = ticketData.photos || []
-    if (Array.isArray(mainPhotos) && mainPhotos.length > 0) {
-      await Promise.all(
-        mainPhotos.map(async photoObj => {
-          // Directly delete using storagePath
-          if (photoObj.storagePath) {
-            await deleteObject(ref(storage, photoObj.storagePath))
-          }
-        })
-      )
-    }
-
-    // 2b. Delete remediation photos in `ticketData.remediationData.rooms`
-    const remediationData = ticketData.remediationData || {}
-    const rooms = remediationData.rooms || []
-
-    for (const room of rooms) {
-      if (!room.photos) continue
-      // If room.photos is also array of objects with {storagePath, downloadURL}
-      const deletePromises = room.photos.map(async photoObj => {
-        if (photoObj?.storagePath) {
-          await deleteObject(ref(storage, photoObj.storagePath))
-        }
-      })
-      await Promise.all(deletePromises)
-    }
-
-    // 3. Finally, delete the ticket doc itself
+    // 9. Finally delete the ticket document
     await deleteDoc(ticketRef)
     Alert.alert('Success', 'Ticket deleted successfully.')
-
-    if (typeof onTicketDeleted === 'function') {
-      onTicketDeleted()
-    }
+    if (typeof onTicketDeleted === 'function') onTicketDeleted()
   } catch (error) {
-    console.error('Error deleting ticket:', error)
-    Alert.alert('Error', 'Failed to delete the ticket. Please try again.')
+    console.error('Error deleting ticket and related data:', error)
+    Alert.alert(
+      'Error',
+      'Could not delete ticket. Ensure all associated items are removed first.'
+    )
   }
 }
 
