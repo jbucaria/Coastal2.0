@@ -6,21 +6,22 @@ import {
   View,
   ScrollView,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  Image,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native'
 import Pdf from 'react-native-pdf'
 import * as Sharing from 'expo-sharing'
 import * as FileSystem from 'expo-file-system'
+import { getStorage, ref, deleteObject } from 'firebase/storage'
+import { doc, updateDoc, deleteField } from 'firebase/firestore'
+import { firestore, app as firebaseApp } from '@/firebaseConfig'
+
 import useTicket from '@/hooks/useTicket'
 import useProjectStore from '@/store/useProjectStore'
 import { generatePdf } from '@/utils/pdfGenerator'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions'
-import { uploadPDFToFirestore } from '@/utils/pdfUploader'
-import { updateTicketPdfUrl } from '@/utils/firestoreUtils'
 import { PhotoModal } from '@/components/PhotoModal'
 import { TicketDetailsCard, RoomCard } from '@/components/Cards'
 
@@ -35,168 +36,330 @@ const ViewReportScreen = () => {
     ticket,
     loading: ticketLoading,
     error: ticketError,
+    refreshTicket,
   } = useTicket(projectId)
 
   const [pdfUri, setPdfUri] = useState(null)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [isViewerVisible, setIsViewerVisible] = useState(false)
-  const [selectedPhoto, setSelectedPhoto] = useState(null)
+  const [selectedPhoto, setSelectedPhoto] = useState(null) // Used by handlePhotoPress and PhotoModal
   const [headerHeight, setHeaderHeight] = useState(0)
   const marginBelowHeader = 8
 
   useEffect(() => {
     console.log(
-      'useTicket effect - loading:',
-      ticketLoading,
-      'ticket:',
-      ticket,
-      'error:',
-      ticketError
+      'ViewReportScreen effect - ticket ID:',
+      ticket?.id,
+      'ticket.inspectionPdfUrl:',
+      ticket?.inspectionPdfUrl,
+      'ticket.remediationPdfUrl:',
+      ticket?.remediationPdfUrl,
+      'current pdfUri state BEFORE this effect logic:',
+      pdfUri
     )
+
     if (ticket) {
-      console.log('Ticket pdfUrl:', ticket.pdfUrl)
-      if (ticket.pdfUrl) {
-        setPdfUri(ticket.pdfUrl)
-        console.log('Existing PDF URL found:', ticket.pdfUrl)
-      } else if (pdfUri) {
-        console.log('Clearing pdfUri since ticket.pdfUrl is not present')
-        if (pdfUri.startsWith('file://')) {
-          FileSystem.deleteAsync(pdfUri).catch(error => {
-            console.error('Error deleting local PDF file:', error)
-          })
+      const urlFromTicket =
+        ticket.inspectionPdfUrl || ticket.remediationPdfUrl || ticket.pdfUrl
+      const currentStoragePath =
+        ticket.inspectionPdfStoragePath || ticket.remediationPdfStoragePath
+      // console.log(
+      //   'useEffect: URL derived from current ticket object:',
+      //   urlFromTicket
+      // )
+      // console.log('useEffect: Storage path from ticket:', currentStoragePath)
+
+      if (urlFromTicket) {
+        if (pdfUri !== urlFromTicket) {
+          console.log(
+            'useEffect: Syncing pdfUri state with URL from ticket object:',
+            urlFromTicket
+          )
+          setPdfUri(urlFromTicket)
         }
-        setPdfUri(null)
+      } else {
+        if (pdfUri) {
+          console.log(
+            'useEffect: Ticket object has no PDF URL. Clearing existing pdfUri state:',
+            pdfUri
+          )
+          setPdfUri(null)
+        }
       }
-    } else if (ticketError) {
-      console.error('Error fetching ticket:', ticketError)
+    } else if (!ticketLoading && pdfUri) {
+      console.log(
+        'useEffect: No ticket data, and not loading. Clearing pdfUri.'
+      )
+      setPdfUri(null)
+    }
+
+    if (ticketError) {
+      console.error('Error in ticket data for useEffect:', ticketError.message)
     }
   }, [ticket, ticketLoading, ticketError])
 
-  // Handler to generate, upload, and display PDF
   const handleGenerateReport = async () => {
-    console.log('handleGenerateReport - Ticket data being used:', ticket)
+    console.log(
+      'handleGenerateReport - Ticket data being used:',
+      ticket ? { id: ticket.id } : null
+    )
     if (!ticket || typeof ticket !== 'object' || !ticket.id) {
       console.error('handleGenerateReport - Invalid ticket data:', ticket)
       return
     }
-    setIsGenerating(true)
+    setIsProcessing(true)
     try {
-      const localPdfUri = await generatePdf(ticket)
-      console.log('Generated local PDF URI:', localPdfUri)
-      if (localPdfUri) {
-        const uploadedPdfUrl = await uploadPDFToFirestore(ticket, localPdfUri)
-        console.log('Uploaded PDF URL:', uploadedPdfUrl)
-        await updateTicketPdfUrl(ticket.id, uploadedPdfUrl)
-        console.log('Firestore ticket updated with new PDF URL.')
-        setPdfUri(localPdfUri)
+      const newPdfRemoteUrl = await generatePdf(ticket)
+      console.log('Generated and uploaded PDF. Remote URL:', newPdfRemoteUrl)
+
+      if (newPdfRemoteUrl) {
+        setPdfUri(newPdfRemoteUrl)
         setIsViewerVisible(true)
+        console.log('Firestore ticket was updated by generatePdf.')
+        if (typeof refreshTicket === 'function') {
+          refreshTicket()
+        }
+      } else {
+        Alert.alert('Error', 'PDF generation did not return a URL.')
       }
     } catch (error) {
-      console.error('Error during PDF generation/upload/update:', error)
+      console.error('Error during PDF generation/upload process:', error)
+      Alert.alert(
+        'Error',
+        `An error occurred while generating the PDF: ${error.message}`
+      )
     } finally {
-      setIsGenerating(false)
+      setIsProcessing(false)
     }
   }
 
-  // Handler to open the PDF viewer modal
+  const handleDeletePdf = async () => {
+    if (!ticket || !ticket.id) {
+      Alert.alert('Error', 'Ticket data is missing.')
+      return
+    }
+
+    const storagePathToDelete =
+      ticket.inspectionPdfStoragePath || ticket.remediationPdfStoragePath
+    const urlFieldToDelete = ticket.inspectionPdfUrl
+      ? 'inspectionPdfUrl'
+      : ticket.remediationPdfUrl
+      ? 'remediationPdfUrl'
+      : null
+    const timestampFieldToDelete = ticket.inspectionPdfUrl
+      ? 'inspectionReportGeneratedAt'
+      : ticket.remediationPdfUrl
+      ? 'remediationReportGeneratedAt'
+      : null
+    const storagePathFieldToDelete = ticket.inspectionPdfStoragePath
+      ? 'inspectionPdfStoragePath'
+      : ticket.remediationPdfStoragePath
+      ? 'remediationPdfStoragePath'
+      : null
+
+    if (
+      !storagePathToDelete ||
+      !urlFieldToDelete ||
+      !timestampFieldToDelete ||
+      !storagePathFieldToDelete
+    ) {
+      Alert.alert(
+        'Error',
+        'PDF information is incomplete in the ticket data. Cannot delete.'
+      )
+      console.error('Missing storagePath or field names for deletion', {
+        ticket,
+      })
+      return
+    }
+
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this PDF report? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsProcessing(true)
+            try {
+              const storage = getStorage(firebaseApp)
+              const pdfRef = ref(storage, storagePathToDelete)
+              await deleteObject(pdfRef)
+              console.log(
+                'PDF deleted from Firebase Storage:',
+                storagePathToDelete
+              )
+
+              const ticketDocRef = doc(firestore, 'tickets', ticket.id)
+              const updates = {}
+              updates[urlFieldToDelete] = deleteField()
+              updates[timestampFieldToDelete] = deleteField()
+              updates[storagePathFieldToDelete] = deleteField()
+
+              await updateDoc(ticketDocRef, updates)
+              console.log(
+                'PDF fields removed from Firestore ticket:',
+                ticket.id
+              )
+
+              setPdfUri(null)
+              setIsViewerVisible(false)
+              Alert.alert('Success', 'PDF report has been deleted.')
+
+              if (typeof refreshTicket === 'function') {
+                refreshTicket()
+              }
+            } catch (error) {
+              console.error('Error deleting PDF:', error)
+              Alert.alert('Error', `Failed to delete PDF: ${error.message}`)
+            } finally {
+              setIsProcessing(false)
+            }
+          },
+        },
+      ]
+    )
+  }
+
   const handleViewReport = () => {
     if (pdfUri) {
       console.log('Viewing PDF with URI:', pdfUri)
       setIsViewerVisible(true)
+    } else {
+      console.warn(
+        'Cannot view report: pdfUri is null. Try generating the report.'
+      )
     }
   }
 
-  // Handler to share the PDF using Expo Sharing
   const handleShareReport = async () => {
     if (!pdfUri) {
       console.log('No PDF URI available to share')
       return
     }
     let shareUri = pdfUri
-    // If remote URL, download to a local cache before sharing
+    setIsProcessing(true)
+
     if (!shareUri.startsWith('file://')) {
+      console.log('Downloading remote PDF for sharing:', shareUri)
       try {
-        const filename = shareUri.split('/').pop().split('?')[0]
-        const localPath = FileSystem.cacheDirectory + filename
-        const downloadResult = await FileSystem.downloadAsync(shareUri, localPath)
+        const filenameTimestamp = Date.now()
+        const remoteFilename =
+          shareUri.split('/').pop().split('?')[0] ||
+          `report-${filenameTimestamp}`
+        const localFilename = remoteFilename.endsWith('.pdf')
+          ? remoteFilename
+          : `${remoteFilename}.pdf`
+        const localPath = FileSystem.cacheDirectory + localFilename
+        const downloadResult = await FileSystem.downloadAsync(
+          shareUri,
+          localPath
+        )
         shareUri = downloadResult.uri
       } catch (downloadError) {
-        console.error('Error downloading PDF for share:', downloadError)
+        console.error('Error downloading PDF for sharing:', downloadError)
+        setIsProcessing(false)
         return
       }
     }
+
     try {
-      // Check if the file exists at the share URI
       const fileInfo = await FileSystem.getInfoAsync(shareUri)
       if (!fileInfo.exists) {
-        console.error('PDF file does not exist at:', shareUri)
+        console.error('PDF file does not exist at share URI:', shareUri)
+        // setIsProcessing(false) is in finally
         return
       }
-      console.log('File exists, size:', fileInfo.size, 'bytes')
-
-      // Check sharing availability
       const isAvailable = await Sharing.isAvailableAsync()
-      console.log('Sharing available:', isAvailable)
       if (!isAvailable) {
         console.warn('Sharing is not available on this device')
+        // setIsProcessing(false) is in finally
         return
       }
-
-      // Attempt to share
-      console.log('Initiating share for PDF:', shareUri)
       await Sharing.shareAsync(shareUri, {
-        mimeType: 'application/pdf',
+        mimeType: 'application/pdf', // Ensure this is correct
         dialogTitle: `Share Inspection Report ${ticket?.ticketNumber || 'N/A'}`,
-        UTI: 'com.adobe.pdf', // iOS-specific UTI for PDF
+        UTI: 'com.adobe.pdf', // iOS specific
       })
-      console.log('Share action completed successfully')
     } catch (error) {
       console.error('Error sharing PDF:', error)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  // Define header options
+  // ========================================================================
+  // >>>>>>>>>>>> ADDED MISSING FUNCTIONS handlePhotoPress and closePhoto HERE <<<<<<<<<<<<<<
+  // ========================================================================
+  const handlePhotoPress = uri => {
+    console.log('ViewReportScreen: handlePhotoPress CALLED with URI:', uri)
+    if (uri) {
+      setSelectedPhoto(uri)
+    }
+  }
+
+  const closePhoto = () => {
+    setSelectedPhoto(null)
+  }
+  // ========================================================================
+
+  const currentPdfStoragePath =
+    ticket?.inspectionPdfStoragePath || ticket?.remediationPdfStoragePath
+
   const headerOptions = [
     {
       label: 'Edit Report',
       onPress: () => {
+        if (isProcessing) return
         router.push({
           pathname: '/EditReportScreen',
           params: { projectId },
         })
       },
+      disabled: isProcessing,
     },
     ...(pdfUri
-      ? [{ label: 'View PDF', onPress: handleViewReport }]
+      ? [
+          {
+            label: 'View PDF',
+            onPress: handleViewReport,
+            disabled: isProcessing,
+          },
+          ...(currentPdfStoragePath
+            ? [
+                {
+                  label: 'Delete PDF',
+                  onPress: handleDeletePdf,
+                  disabled: isProcessing,
+                  isDestructive: true,
+                },
+              ]
+            : []),
+        ]
       : [
           {
             label: 'Generate PDF',
             onPress: handleGenerateReport,
             disabled:
               ticketLoading ||
-              isGenerating ||
+              isProcessing ||
               !ticket ||
               typeof ticket !== 'object',
           },
         ]),
   ]
 
-  // Define modal header options
   const modalHeaderOptions = [
     {
       label: 'Share',
       onPress: handleShareReport,
+      disabled: isProcessing,
     },
   ]
 
-  // Photo Modal Handlers
-  const handlePhotoPress = uri => {
-    if (uri) setSelectedPhoto(uri)
-  }
-  const closePhoto = () => setSelectedPhoto(null)
-
-  // --- Render Logic ---
-  if (ticketLoading) {
+  if (ticketLoading && !ticket) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1E3A8A" />
@@ -205,7 +368,7 @@ const ViewReportScreen = () => {
     )
   }
 
-  if (ticketError) {
+  if (ticketError && !ticket) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.errorText}>
@@ -215,33 +378,32 @@ const ViewReportScreen = () => {
     )
   }
 
-  if (!ticket) {
+  if (!ticket && !ticketLoading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>
-          Report data not found or unavailable.
+          Report data not found or unavailable for Project ID: {projectId}.
         </Text>
       </View>
     )
   }
 
-  const inspectionRooms = ticket.inspectionData?.rooms || []
-  const streetPhotoURL = ticket.streetPhoto?.downloadURL || null
+  const inspectionRooms = ticket?.inspectionData?.rooms || []
+  const streetPhotoURL = ticket?.streetPhoto?.downloadURL || null
 
   return (
     <View style={styles.fullScreenContainer}>
-      {/* Custom Header */}
       <HeaderWithOptions
         title="Inspection Report"
-        onBack={() =>
+        onBack={() => {
+          if (isProcessing) return
           router.canGoBack() ? router.back() : router.push('/(tabs)')
-        }
+        }}
         options={headerOptions}
         showHome={true}
         onHeightChange={setHeaderHeight}
       />
 
-      {/* Scrollable content area */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -253,43 +415,56 @@ const ViewReportScreen = () => {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Loading overlay */}
-        {isGenerating && (
+        {isProcessing && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
             <Text style={styles.loadingOverlayText}>Processing...</Text>
           </View>
         )}
 
-        {/* Report Header Section */}
+        {ticketError && ticket && (
+          <View
+            style={{
+              padding: 10,
+              backgroundColor: 'lightyellow',
+              marginVertical: 10,
+              borderRadius: 5,
+            }}
+          >
+            <Text style={{ color: '#856404', textAlign: 'center' }}>
+              Notice: There might be an issue with refreshing some data.{' '}
+              {ticketError.message}
+            </Text>
+          </View>
+        )}
         <View style={styles.reportHeader}>
           <Text style={styles.reportTitle}>Inspection Report</Text>
           <View style={styles.reportMetadata}>
             <Text style={styles.metadataText}>
-              Ticket #{ticket.ticketNumber || 'N/A'}
+              Ticket #{ticket?.ticketNumber || 'N/A'}
             </Text>
             <Text style={styles.metadataText}>
               Inspected on:{' '}
-              {new Date(
-                ticket.createdAt?.seconds * 1000
-              ).toLocaleDateString() || 'N/A'}
+              {ticket?.createdAt?.seconds
+                ? new Date(ticket.createdAt.seconds * 1000).toLocaleDateString()
+                : 'N/A'}
             </Text>
           </View>
         </View>
 
-        {/* --- Ticket Details Section --- */}
         <View style={styles.detailsSection}>
           <Text style={styles.sectionTitle}>Report Overview</Text>
-          <TicketDetailsCard
-            ticket={ticket}
-            editable={false}
-            onChangeField={() => {}}
-            streetPhotoURL={streetPhotoURL}
-            style={styles.cardStyle}
-          />
+          {ticket && (
+            <TicketDetailsCard
+              ticket={ticket}
+              editable={false}
+              onChangeField={() => {}}
+              streetPhotoURL={streetPhotoURL}
+              style={styles.cardStyle}
+            />
+          )}
         </View>
 
-        {/* --- Room Details Section --- */}
         <View style={styles.roomsSection}>
           <Text style={styles.sectionTitle}>Room Inspections</Text>
           {inspectionRooms.length > 0 ? (
@@ -299,7 +474,7 @@ const ViewReportScreen = () => {
                 room={room}
                 editable={false}
                 onChangeField={() => {}}
-                onPhotoPress={handlePhotoPress}
+                onPhotoPress={handlePhotoPress} // This will now find the function
                 style={styles.cardStyle}
               />
             ))
@@ -308,7 +483,6 @@ const ViewReportScreen = () => {
           )}
         </View>
 
-        {/* Report Footer */}
         <View style={styles.reportFooter}>
           <Text style={styles.footerText}>
             Generated by Coastal Restoration Services
@@ -319,16 +493,19 @@ const ViewReportScreen = () => {
         </View>
       </ScrollView>
 
-      {/* PDF Viewer Modal */}
       <Modal
         visible={isViewerVisible}
         animationType="slide"
-        onRequestClose={() => setIsViewerVisible(false)}
+        onRequestClose={() => {
+          if (!isProcessing) setIsViewerVisible(false)
+        }}
       >
         <View style={styles.modalContainer}>
           <HeaderWithOptions
             title="PDF Report"
-            onBack={() => setIsViewerVisible(false)}
+            onBack={() => {
+              if (!isProcessing) setIsViewerVisible(false)
+            }}
             options={modalHeaderOptions}
             showHome={false}
             onHeightChange={() => {}}
@@ -340,11 +517,14 @@ const ViewReportScreen = () => {
               style={styles.pdf}
               onLoadComplete={(numberOfPages, filePath) => {
                 console.log(
-                  `PDF loaded: ${numberOfPages} pages from ${filePath}`
+                  `PDF loaded: ${numberOfPages} pages from ${
+                    filePath || pdfUri
+                  }`
                 )
               }}
               onError={error => {
                 console.error('PDF rendering error:', error)
+                Alert.alert('Error', 'Could not display PDF.')
                 setIsViewerVisible(false)
               }}
               activityIndicatorProps={{
@@ -354,17 +534,17 @@ const ViewReportScreen = () => {
             />
           ) : (
             <View style={styles.loadingContainer}>
-              <Text>Loading PDF...</Text>
+              <ActivityIndicator size="large" color="#1E3A8A" />
+              <Text style={styles.loadingText}>Loading PDF...</Text>
             </View>
           )}
         </View>
       </Modal>
 
-      {/* Photo Viewer Modal */}
       <PhotoModal
         visible={selectedPhoto !== null}
         photoUri={selectedPhoto}
-        onClose={closePhoto}
+        onClose={closePhoto} // This will now find the function
       />
     </View>
   )
@@ -372,7 +552,6 @@ const ViewReportScreen = () => {
 
 export default ViewReportScreen
 
-// --- Styles ---
 const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,

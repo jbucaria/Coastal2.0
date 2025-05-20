@@ -23,22 +23,24 @@ const escapeString = str => {
 }
 
 export const generatePdf = async ticket => {
-  console.log('[generatePdf_V9_PhotoCommentsFix] Function called.')
+  console.log('[generatePdf_Simplified] Function called.')
 
   if (
     !ticket ||
     typeof ticket !== 'object' ||
     Object.keys(ticket).length === 0
   ) {
-    console.error('[generatePdf_V9] Invalid ticket data:', ticket)
+    console.error('[generatePdf_Simplified] Invalid ticket data:', ticket)
     throw new Error('Invalid or empty ticket data provided')
   }
 
   if (!Print || !FileSystem || !Asset || !app) {
-    console.error('[generatePdf_V9] Missing critical modules.')
+    console.error('[generatePdf_Simplified] Missing critical modules.')
     throw new Error('A required module is not available.')
   }
-  console.log('[generatePdf_V9] Modules checked. Ticket data validated.')
+  console.log(
+    '[generatePdf_Simplified] Modules checked. Ticket data validated.'
+  )
 
   const ticketNumber = escapeString(ticket.ticketNumber || 'N/A')
   const street = escapeString(ticket.street || 'Unknown Address')
@@ -50,15 +52,18 @@ export const generatePdf = async ticket => {
   const reason = escapeString(ticket.reason || 'Not specified')
   const {
     createdAt = {},
-    inspectionData = { rooms: [] }, // Used if remediationData is not present
-    remediationData = null, // Preferred if present
+    inspectionData = { rooms: [] },
+    remediationData = null,
     streetPhoto = null,
   } = ticket
-  // Log which data source for rooms will be used
   if (remediationData) {
-    console.log(`[generatePdf_V9] Using 'remediationData' for room details.`)
+    console.log(
+      `[generatePdf_Simplified] Using 'remediationData' for room details.`
+    )
   } else {
-    console.log(`[generatePdf_V9] Using 'inspectionData' for room details.`)
+    console.log(
+      `[generatePdf_Simplified] Using 'inspectionData' for room details.`
+    )
   }
 
   let companyLogoFirestoreUrl = ''
@@ -94,11 +99,11 @@ export const generatePdf = async ticket => {
       }
     } else {
       console.warn(
-        '[generatePdf_V9] Company info document not found, using defaults.'
+        '[generatePdf_Simplified] Company info document not found, using defaults.'
       )
     }
   } catch (e) {
-    console.error('[generatePdf_V9] Error fetching company info:', e)
+    console.error('[generatePdf_Simplified] Error fetching company info:', e)
   }
 
   let logoDataUri = ''
@@ -120,12 +125,15 @@ export const generatePdf = async ticket => {
     }
     logoDataUri = `data:${mime};base64,${base64}`
   } catch (e) {
-    console.error('[generatePdf_V9] Error loading local logo:', e.message)
+    console.error(
+      '[generatePdf_Simplified] Error loading local logo:',
+      e.message
+    )
     logoDataUri = companyLogoFirestoreUrl || ''
     console.log(
       logoDataUri
-        ? '[generatePdf_V9] Using Firestore logo as fallback.'
-        : '[generatePdf_V9] No logo available.'
+        ? '[generatePdf_Simplified] Using Firestore logo as fallback.'
+        : '[generatePdf_Simplified] No logo available.'
     )
   }
 
@@ -152,7 +160,7 @@ export const generatePdf = async ticket => {
     dataForRooms.rooms.length > 0
   ) {
     console.log(
-      `[generatePdf_V9] Processing ${dataForRooms.rooms.length} rooms.`
+      `[generatePdf_Simplified] Processing ${dataForRooms.rooms.length} rooms.`
     )
     roomsHTML = dataForRooms.rooms
       .map((room, index) => {
@@ -163,17 +171,13 @@ export const generatePdf = async ticket => {
             'No specific details provided.'
         )
         const photos = room?.photos || []
-        // console.log(`[generatePdf_V9] Room '${roomTitle}' photos:`, JSON.stringify(photos));
 
         const photosHTML =
           Array.isArray(photos) && photos.length > 0
             ? photos
                 .map(p => {
                   const imageUrl = p?.downloadURL
-                  // IMPORTANT: This line gets the comment. Ensure p.comment or p.label has data.
                   const commentText = escapeString(p?.comment || p?.label || '')
-                  // console.log(`[generatePdf_V9] Photo URL: ${imageUrl}, Comment/Label raw: '${p?.comment || p?.label}', Escaped: '${commentText}'`);
-
                   if (
                     imageUrl &&
                     typeof imageUrl === 'string' &&
@@ -184,12 +188,9 @@ export const generatePdf = async ticket => {
                         ${
                           commentText
                             ? `<p class="photo-comment">${commentText}</p>`
-                            : '<p class="photo-comment">&nbsp;</p>'
+                            : '<p class="photo-comment"> </p>'
                         } 
                       </div>`
-                    // Added fallback non-breaking space to maintain layout if comment is empty,
-                    // or you can remove the <p> entirely if commentText is empty as before:
-                    // ${commentText ? `<p class="photo-comment">${commentText}</p>` : ''}
                   }
                   return ''
                 })
@@ -270,9 +271,7 @@ export const generatePdf = async ticket => {
   }, ${city}, ${state} ${zip}</strong> </p>
         <p><strong>Date:</strong> ${createdAtStr}</p>
         <p><strong>License:</strong> ${companyDetails.licenseNumber}</p>
-      
       </div>
-     
       <div class="cover-footer"><p>© ${new Date().getFullYear()} ${
     companyDetails.companyName
   }</p></div>
@@ -286,6 +285,8 @@ export const generatePdf = async ticket => {
     body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; background: #fff; color: #333; line-height: 1.5; font-size: 10pt; }
     
     .cover-page { width: 210mm; height: 297mm; padding: 15mm; display: flex; flex-direction: column; align-items: center; text-align: center; background: #f4f8fb; page-break-after: always; justify-content: space-between; }
+    curiosité. Les bordures sont définies pour améliorer la clarté visuelle sans surcharger le design. Les couleurs sont choisies pour refléter une esthétique professionnelle et moderne, tout en restant lisibles et adaptées à l'impression.
+
     .cover-header { width: 100%; } .company-logo { max-width: 140mm; max-height: 45mm; object-fit: contain; margin-bottom: 5mm; }
     .company-contact-info { font-size: 9pt; color: #444; margin-top: 3mm; } .company-contact-info p { margin: 1.5px 0; }
     .cover-photo-container { width: 100%; max-width: 175mm; height: 95mm; margin: 5mm auto; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #ddd; border: 1px solid #ccc; }
@@ -314,7 +315,6 @@ export const generatePdf = async ticket => {
         height: 50mm; 
         display: flex;
         flex-direction: column;
-        /* justify-content: space-between; Removed to allow image to grow correctly */
         background-color: #ffffff;
         border-radius: 4px;
         overflow: hidden;
@@ -324,29 +324,29 @@ export const generatePdf = async ticket => {
     }
     .photo-item img {
         width: 100%;
-        flex-grow: 1; /* Image takes available vertical space */
+        flex-grow: 1;
         object-fit: contain;  
         background-color: #eff2f5; 
         display: block; 
-        overflow: hidden; /* Helps if somehow image content tries to escape bounds */
+        overflow: hidden;
     }
     .photo-comment {
-        font-size: 8pt; /* Slightly increased for readability */
-        color: #2c3e50; /* Darker text */
-        padding: 4px 5px; /* Adjusted padding */
+        font-size: 8pt;
+        color: #2c3e50;
+        padding: 4px 5px;
         background-color: #f8f9fa;
         width: 100%;
         text-align: center; 
         flex-shrink: 0; 
-        height: 32px; /* Increased height to comfortably fit two lines */
-        overflow-y: hidden; /* Changed to hidden to clip extra lines */
+        height: 32px;
+        overflow-y: hidden;
         line-height: 1.3; 
         border-top: 1px solid #e9edf0;
-        word-wrap: break-word; /* Ensure long words without spaces can wrap */
-        overflow-wrap: break-word; /* Standard property for word wrapping */
-        display: flex; /* For vertical centering if text is short */
-        align-items: center; /* For vertical centering */
-        justify-content: center; /* For horizontal centering */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .no-data, .no-photos { font-style: italic; color: #555; text-align: center; margin: 12px 0; font-size: 9.5pt; padding: 8px; background-color: #f9fafb; border-radius: 4px; }
     .footer { text-align: center; padding-top: 8mm; font-size: 8.5pt; color: #555; border-top: 0.5px solid #ddd; margin-top: 8mm; }
@@ -391,14 +391,14 @@ export const generatePdf = async ticket => {
 
   let firebaseStorageDownloadUrl = null
   try {
-    console.log(`[generatePdf_V9] Generating PDF for: ${ticketNumber}`)
+    console.log(`[generatePdf_Simplified] Generating PDF for: ${ticketNumber}`)
     const { uri: temporaryPdfUri } = await Print.printToFileAsync({
       html: htmlContent,
       base64: false,
       width: 595,
       height: 842,
     })
-    console.log(`[generatePdf_V9] Temp PDF URI: ${temporaryPdfUri}`)
+    console.log(`[generatePdf_Simplified] Temp PDF URI: ${temporaryPdfUri}`)
 
     const rawTicketNumber = ticket.ticketNumber || 'UnknownTicket'
     const reportType = remediationData
@@ -418,10 +418,9 @@ export const generatePdf = async ticket => {
       streetNumberPart = streetMatch[1]
       streetNamePart = (streetMatch[2] || '')
         .replace(/^_|^_*(.+?)_*$/, '$1')
-        .trim() // remove leading/trailing underscores then trim
+        .trim()
     }
     if (!streetNamePart && streetNumberPart) streetNamePart = 'Street'
-    // If only number was found, use generic "Street"
     else if (!streetNamePart && !streetNumberPart)
       streetNamePart = 'UnknownAddress'
 
@@ -436,46 +435,36 @@ export const generatePdf = async ticket => {
 
     const filenameInStorage = `${baseFilename}.pdf`
     const storagePath = `${filenameInStorage}`
-    console.log(`[generatePdf_V9] New Firebase Storage Path: ${storagePath}`)
+    console.log(
+      `[generatePdf_Simplified] Firebase Storage Path: ${storagePath}`
+    )
 
     const response = await fetch(temporaryPdfUri)
     if (!response.ok)
       throw new Error(`Failed to fetch temp PDF: ${response.status}`)
     const blob = await response.blob()
-    console.log(`[generatePdf_V9] PDF blob fetched. Size: ${blob.size}`)
+    console.log(`[generatePdf_Simplified] PDF blob fetched. Size: ${blob.size}`)
 
     const storage = getStorage(app)
     const storageFileRef = ref(storage, storagePath)
-    console.log(`[generatePdf_V9] Uploading to: ${storagePath}`)
+    console.log(`[generatePdf_Simplified] Uploading to: ${storagePath}`)
     const uploadTaskSnapshot = await uploadBytesResumable(
       storageFileRef,
       blob,
       { contentType: 'application/pdf' }
     )
-    console.log('[generatePdf_V9] Upload successful:', uploadTaskSnapshot.state)
+    console.log(
+      '[generatePdf_Simplified] Upload successful:',
+      uploadTaskSnapshot.state
+    )
 
     firebaseStorageDownloadUrl = await getDownloadURL(uploadTaskSnapshot.ref)
-    console.log(`[generatePdf_V9] Download URL: ${firebaseStorageDownloadUrl}`)
+    console.log(
+      `[generatePdf_Simplified] Download URL: ${firebaseStorageDownloadUrl}`
+    )
 
     const reportTimestamp = new Date()
     try {
-      const firestoreReportRef = doc(
-        firestore,
-        'tickets',
-        String(rawTicketNumber),
-        'reports',
-        filenameInStorage
-      )
-      await setDoc(firestoreReportRef, {
-        storageUrl: firebaseStorageDownloadUrl,
-        storagePath: storagePath,
-        filename: filenameInStorage,
-        ticketNumber: String(rawTicketNumber),
-        createdAt: reportTimestamp,
-        type: remediationData ? 'remediation' : 'inspection',
-      })
-      console.log('[generatePdf_V9] Report metadata saved to Firestore.')
-
       const mainTicketDocRef = doc(
         firestore,
         'tickets',
@@ -493,27 +482,32 @@ export const generatePdf = async ticket => {
         {
           [pdfUrlField]: firebaseStorageDownloadUrl,
           [reportGeneratedAtField]: reportTimestamp,
-          lastPdfUrl: firebaseStorageDownloadUrl,
-          lastReportGeneratedAt: reportTimestamp,
         },
         { merge: true }
       )
-      console.log(`[generatePdf_V9] Main ticket ${rawTicketNumber} updated.`)
+      console.log(
+        `[generatePdf_Simplified] Main ticket ${rawTicketNumber} updated.`
+      )
     } catch (e) {
-      console.error('[generatePdf_V9] Error saving Firestore metadata:', e)
+      console.error(
+        '[generatePdf_Simplified] Error saving Firestore metadata:',
+        e
+      )
     }
 
     try {
       await FileSystem.deleteAsync(temporaryPdfUri, { idempotent: true })
-      console.log(`[generatePdf_V9] Temp PDF deleted: ${temporaryPdfUri}`)
+      console.log(
+        `[generatePdf_Simplified] Temp PDF deleted: ${temporaryPdfUri}`
+      )
     } catch (e) {
-      console.warn('[generatePdf_V9] Could not delete temp PDF:', e)
+      console.warn('[generatePdf_Simplified] Could not delete temp PDF:', e)
     }
 
     return firebaseStorageDownloadUrl
   } catch (error) {
     console.error(
-      '[generatePdf_V9] Critical PDF process error:',
+      '[generatePdf_Simplified] Critical PDF process error:',
       error.message,
       error.stack?.substring(0, 300)
     )

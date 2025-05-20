@@ -964,7 +964,6 @@ const RemediationScreen = () => {
             >
               <View style={styles.modalOverlay}>
                 <TouchableWithoutFeedback>
-                  {' '}
                   {/* To prevent modal close when tapping inside container */}
                   <View style={styles.itemsModalContainer}>
                     <Text style={styles.modalTitle}>Select Line Item</Text>
