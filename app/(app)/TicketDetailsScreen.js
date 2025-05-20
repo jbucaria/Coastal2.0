@@ -6,6 +6,7 @@ import {
   ScrollView,
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -43,6 +44,7 @@ const TicketDetailsScreen = () => {
   const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [needsReturn, setNeedsReturn] = useState(false) // For marking return trip
+  const [returnNote, setReturnNote] = useState('')   // Brief description for return trip
   const [headerHeight, setHeaderHeight] = useState(0)
   const scrollY = useRef(new Animated.Value(0)).current
 
@@ -187,19 +189,29 @@ const TicketDetailsScreen = () => {
 
   const completeTicket = async () => {
     const newStatus = needsReturn ? 'Return Needed' : 'Completed'
+    // If marking a return, require a note
+    if (needsReturn && !returnNote?.trim()) {
+      Alert.alert('Note Required', 'Please enter a brief reason for the return trip.')
+      return
+    }
     Alert.alert('Confirm', `Mark this ticket as ${newStatus}?`, [
       {
         text: 'Yes',
         onPress: async () => {
           try {
             const ticketRef = doc(firestore, 'tickets', projectId)
-            await updateDoc(ticketRef, {
+            // Build update payload
+            const updatePayload = {
               status: newStatus,
               history: arrayUnion({
                 status: newStatus,
                 timestamp: new Date().toISOString(),
               }),
-            })
+            }
+            if (needsReturn) {
+              updatePayload.returnNote = returnNote.trim()
+            }
+            await updateDoc(ticketRef, updatePayload)
             Alert.alert('Success', `Ticket marked as ${newStatus}.`)
             router.push('/(tabs)')
           } catch (error) {
@@ -410,6 +422,15 @@ const TicketDetailsScreen = () => {
                   Needs Return Trip? {needsReturn ? 'Yes' : 'No'}
                 </Text>
               </TouchableOpacity>
+          {needsReturn && (
+            <TextInput
+              style={styles.returnNoteInput}
+              placeholder="Brief reason for return trip"
+              value={returnNote}
+              onChangeText={setReturnNote}
+              multiline
+            />
+          )}
               <TouchableOpacity
                 style={styles.navButton}
                 onPress={completeTicket}
@@ -578,6 +599,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Input for return trip note
+  returnNoteInput: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 8,
+    marginVertical: 8,
+    textAlignVertical: 'top',
+    minHeight: 60,
+    color: '#333',
   },
   navButton: {
     backgroundColor: '#2980b9',

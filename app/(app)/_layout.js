@@ -26,6 +26,11 @@ const _layout = () => {
         options={{ headerShown: true, headerTitle: 'Edit Remediation' }}
       />
       <Stack.Screen name="EditReportScreen" />
+      {/* Manager Return Scheduler */}
+      <Stack.Screen
+        name="ReturnScheduleScreen"
+        options={{ headerShown: true, headerTitle: 'Return Schedule' }}
+      />
     </Stack>
   )
 }

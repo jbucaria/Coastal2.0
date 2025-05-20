@@ -39,6 +39,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="returnTrips"
+          options={{
+            title: 'Returns',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="repeat-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="settings"
           options={{
             title: 'Profile',

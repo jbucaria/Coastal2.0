@@ -209,7 +209,7 @@ const TicketsScreen = () => {
           </View>
         </Modal>
 
-        <View style={{ position: 'absolute', right: 24, bottom: 110 }}>
+        <View style={{ position: 'absolute', right: 24, bottom: 60 }}>
           <FloatingButton
             onPress={() => router.push('/CreateTicketScreen')}
             title="Ticket"

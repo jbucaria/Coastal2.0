@@ -226,7 +226,7 @@ const TicketCard = ({
 
 const styles = StyleSheet.create({
   cardContainer: {
-    height: 200,
+    height: 220,
     marginHorizontal: 0,
     padding: 5,
     borderBottomColor: '#eaeaea',
