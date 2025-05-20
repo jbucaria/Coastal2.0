@@ -712,26 +712,6 @@ const RemediationScreen = () => {
                             }
                           />
                         </View>
-                        <View style={styles.quantityPriceContainer}>
-                          <Text style={styles.inputLabel}>Price ($):</Text>
-                          <TextInput
-                            style={[
-                              styles.measurementTextInput,
-                              styles.itemNumericInput,
-                            ]}
-                            placeholder="0.00"
-                            keyboardType="decimal-pad"
-                            value={measurement.unitPrice?.toString()}
-                            onChangeText={val =>
-                              handleMeasurementChange(
-                                room.id,
-                                measurement.id,
-                                'unitPrice',
-                                val
-                              )
-                            }
-                          />
-                        </View>
                       </View>
                     </View>
                   ))}
