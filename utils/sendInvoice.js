@@ -99,8 +99,6 @@ const sendInvoiceToQuickBooks = async (invoiceData, accessToken) => {
     TotalAmt: totalAmt,
   }
 
-  console.log('🚀 Sending Invoice Data:', JSON.stringify(requestBody, null, 2))
-
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -118,14 +116,9 @@ const sendInvoiceToQuickBooks = async (invoiceData, accessToken) => {
       return null
     }
 
-    console.log(
-      '🔍 QuickBooks Response:',
-      JSON.stringify(responseData, null, 2)
-    )
-
     if (response.ok) {
       Alert.alert('Success', 'Invoice sent to QuickBooks!')
-      console.log('✅ Invoice Created:', responseData)
+
       return responseData
     } else {
       const errorDetails = responseData.Fault?.Error || []

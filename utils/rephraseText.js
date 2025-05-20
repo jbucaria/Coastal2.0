@@ -56,11 +56,6 @@ export const rephraseText = async inputText => {
     },
   ]
 
-  // Log that the request is being made, masking the key
-  console.log(
-    `Attempting to rephrase text. API Key: ${apiKey.substring(0, 5)}...`
-  )
-
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -78,13 +73,6 @@ export const rephraseText = async inputText => {
         presence_penalty: 0.0,
       }),
     })
-
-    // Log response status for debugging
-    console.log(
-      'OpenAI API Response Status:',
-      response.status,
-      response.statusText
-    )
 
     if (!response.ok) {
       let errorDetails = {}
@@ -115,7 +103,6 @@ export const rephraseText = async inputText => {
     const content = data?.choices?.[0]?.message?.content
 
     if (content) {
-      console.log('Rephrased text received successfully.')
       return content.trim() // Return the rephrased text
     } else {
       // Handle cases where the response structure is unexpected

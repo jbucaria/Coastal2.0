@@ -78,7 +78,7 @@ const InspectionScreen = () => {
   useEffect(() => {
     if (ticket) {
       const existing = ticket.streetPhoto
-      console.log('Street Photo from ticket:', existing) // Debug log
+
       if (existing && existing.downloadURL) {
         setStreetPhoto(existing)
       } else {

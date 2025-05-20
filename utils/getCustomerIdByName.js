@@ -14,7 +14,6 @@ const getCustomerIdByName = async (customerName, accessToken, companyId) => {
     })
 
     const data = await response.json()
-    console.log('🔎 Customer Query Result:', JSON.stringify(data, null, 2))
 
     if (
       !response.ok ||

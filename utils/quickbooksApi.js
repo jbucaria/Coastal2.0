@@ -74,7 +74,7 @@ export const createInvoiceInQuickBooks = async (
     Line: lines,
     TotalAmt: totalAmt,
   }
-  console.log('🚀 Sending Invoice Data:', JSON.stringify(requestBody, null, 2))
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -90,10 +90,7 @@ export const createInvoiceInQuickBooks = async (
       Alert.alert('Error', 'Invalid JSON response from QuickBooks.')
       return null
     }
-    console.log(
-      'QuickBooks Create Invoice Response:',
-      JSON.stringify(responseData, null, 2)
-    )
+
     if (response.ok) {
       return responseData
     } else {
@@ -160,7 +157,7 @@ export const sendInvoiceEmailToQuickBooks = async (
       )
       return null
     }
-    console.log('QuickBooks Send Invoice Response:', responseData)
+
     if (response.ok) {
       return responseData
     } else {

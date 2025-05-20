@@ -42,10 +42,6 @@ export const createTicket = async (
     // Save to Firestore
     const docRef = await addDoc(collection(firestore, 'tickets'), ticketPayload)
 
-    // Log the document ID and payload after creation
-    console.log('Ticket created with ID:', docRef.id)
-    console.log('Payload sent to Firestore:', ticketPayload)
-
     // Update with projectId and ticketNumber
     const docId = docRef.id
     const lastSix = docId.slice(-6)
@@ -114,9 +110,9 @@ export const handleCreateTicket = async (
 
     const composedAddress = `${newTicket.street}${
       newTicket.lotNumber ? ' Lot ' + newTicket.lotNumber : ''
-    }${
-      newTicket.apt ? ' Apt ' + newTicket.apt : ''
-    }, ${newTicket.city}, ${newTicket.state} ${newTicket.zip}`
+    }${newTicket.apt ? ' Apt ' + newTicket.apt : ''}, ${newTicket.city}, ${
+      newTicket.state
+    } ${newTicket.zip}`
 
     const ticketData = {
       ...newTicket,

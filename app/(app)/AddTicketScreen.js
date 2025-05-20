@@ -55,7 +55,7 @@ const AddTicketScreen = () => {
 
   // Handle address selection from Google Places
   const handleAutocompletePress = (data, details = null) => {
-    console.log('Autocomplete Pressed:', { data, details })
+  
     if (details && details.address_components) {
       const components = parseAddressComponents(details.address_components)
       const newAddress = {

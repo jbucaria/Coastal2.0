@@ -66,11 +66,11 @@ const initialTicketStatus = {
   customerNumber: '',
   customerEmail: '',
   customerId: '',
-  homeOwnerName: '',  // Optional homeowner contact
+  homeOwnerName: '', // Optional homeowner contact
   homeOwnerNumber: '',
-  builderSupervisorName: '',  // Supervisor of the builder contact
+  builderSupervisorName: '', // Supervisor of the builder contact
   builderSupervisorPhone: '',
-  lotNumber: '',  // Lot number for the property
+  lotNumber: '', // Lot number for the property
   inspectorName: '',
   reason: '',
   hours: '',
@@ -121,14 +121,6 @@ const CreateTicketScreen = () => {
   const router = useRouter()
   const { user } = useUserStore()
   const { accessToken, quickBooksCompanyId } = useAuthStore()
-
-  // Debug logging to check for double rendering
-  useEffect(() => {
-    console.log('CreateTicketScreen mounted')
-    return () => {
-      console.log('CreateTicketScreen unmounted')
-    }
-  }, [])
 
   // Main state variables
   const [newTicket, setNewTicket] = useState(initialTicketStatus)
@@ -386,11 +378,10 @@ const CreateTicketScreen = () => {
       // to your backend/API that interacts with QuickBooks using accessToken
       // and quickBooksCompanyId.
       // For now, simulating success and generating a dummy ID.
-      console.log('Attempting to create customer in QuickBooks:', newCustomer)
+
       // const qbCustomerId = await createCustomerInQuickBooks( newCustomer, quickBooksCompanyId, accessToken );
       // Using a dummy ID for demonstration
       const qbCustomerId = `qb-${Date.now()}`
-      console.log('QuickBooks customer ID (simulated):', qbCustomerId)
 
       // Add the QuickBooks customer id to the new customer object
       newCustomer.id = qbCustomerId // Use the ID from QuickBooks
@@ -400,7 +391,6 @@ const CreateTicketScreen = () => {
         collection(firestore, 'customers'),
         newCustomer
       )
-      console.log('Customer saved to Firestore with ID: ', docRef.id)
 
       // Update newTicket with the new customer
       // Use the Firestore ID for internal reference if needed,
@@ -503,15 +493,15 @@ const CreateTicketScreen = () => {
       ...newTicket,
       startTime: startTime,
       endTime: endTime,
-      street: street,            // Address fields
-      lotNumber: lotNumber,      // Lot number, optional
+      street: street, // Address fields
+      lotNumber: lotNumber, // Lot number, optional
       city: city,
       state: stateField,
       zip: zip,
       // Ticket-specific details
       typeOfJob: jobType,
       occupied: vacancy === 'occupied',
-      note: newNote,             // General note
+      note: newNote, // General note
       builderSupervisorName: newTicket.builderSupervisorName,
       builderSupervisorPhone: newTicket.builderSupervisorPhone,
     }

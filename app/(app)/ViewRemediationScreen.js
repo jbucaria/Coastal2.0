@@ -34,7 +34,6 @@ import coastalLogo from '../../assets/images/CoastalRestorationServicesLogo-Fina
  * @returns {Promise<string>} A promise resolving with the complete HTML string.
  */
 const generateHTML = async (ticket, remediationData) => {
-  console.log('[generateHTML_V3_LogoFix] Function called.')
   // --- Validate Input ---
   if (!ticket || typeof ticket !== 'object') {
     console.error('[generateHTML_V3_LogoFix] Received invalid ticket data')
@@ -108,7 +107,7 @@ const generateHTML = async (ticket, remediationData) => {
 
   // --- Load local logo asset as base64 for embedding (Primary Method) ---
   let localLogoDataUri = '' // This will be the data:image URI
-  console.log('[generateHTML_V3_LogoFix] Attempting to load local logo asset.')
+
   try {
     if (!coastalLogo) {
       // Check if the import worked
@@ -116,20 +115,10 @@ const generateHTML = async (ticket, remediationData) => {
         'Local `coastalLogo` import is undefined or null. Verify the import path at the top of ViewRemediationScreen.js'
       )
     }
-    console.log(
-      '[generateHTML_V3_LogoFix] `coastalLogo` import reference:',
-      coastalLogo
-    )
 
     const asset = Asset.fromModule(coastalLogo)
-    console.log(
-      `[generateHTML_V3_LogoFix] Asset created: Name: ${asset.name}, Type: ${asset.type}, URI: ${asset.uri}`
-    )
 
     await asset.downloadAsync()
-    console.log(
-      `[generateHTML_V3_LogoFix] Asset downloaded. Local URI: ${asset.localUri}`
-    )
 
     if (!asset.localUri) {
       throw new Error('Local asset URI is null or undefined after download.')
@@ -158,15 +147,8 @@ const generateHTML = async (ticket, remediationData) => {
       )
         mime = 'image/jpeg'
     }
-    console.log(
-      '[generateHTML_V3_LogoFix] Determined MIME type for local logo data URI:',
-      mime
-    )
 
     localLogoDataUri = `data:${mime};base64,${base64}`
-    console.log(
-      `[generateHTML_V3_LogoFix] Successfully created local logo data URI. Length: ${localLogoDataUri.length}`
-    )
   } catch (e) {
     console.warn(
       '[generateHTML_V3_LogoFix] Error loading local logo asset:',
@@ -180,9 +162,7 @@ const generateHTML = async (ticket, remediationData) => {
   // Decide final logo source for HTML
   let finalLogoSrcForHtml = localLogoDataUri // Prefer local Base64 URI
   if (!finalLogoSrcForHtml && companyFirestoreLogoUrl) {
-    console.log(
-      '[generateHTML_V3_LogoFix] Local logo failed or unavailable, using Firestore URL for logo.'
-    )
+  
     finalLogoSrcForHtml = companyFirestoreLogoUrl // Fallback to Firestore URL
   } else if (finalLogoSrcForHtml) {
     console.log(
@@ -418,7 +398,6 @@ const generateHTML = async (ticket, remediationData) => {
 </body>
 </html>`
 
-  console.log('[generateHTML_V3_LogoFix] HTML generation complete.')
   return finalHtmlContent
 }
 
@@ -457,10 +436,6 @@ export default function ViewRemediationScreen() {
           const remData = data.remediationData || { rooms: [] }
           // Filter rooms if needed, or use all rooms from remData for the report
           setRemediationData(remData)
-          console.log(
-            '[ViewRemediationScreen] Fetched remediation data:',
-            JSON.stringify(remData, null, 2).substring(0, 300)
-          )
         } else {
           console.error('No ticket document found for ID:', projectId)
           Alert.alert('Error', 'No data found for this project ID.')
@@ -487,9 +462,6 @@ export default function ViewRemediationScreen() {
     setIsGeneratingReport(true) // Start activity indicator
 
     try {
-      console.log(
-        '--- [ViewRemediationScreen] Data being passed to generateHTML ---'
-      )
       // Log only specific parts of ticket to avoid overly verbose logs, or stringify with replacer.
       console.log(
         'Ticket (summary):',
@@ -503,17 +475,14 @@ export default function ViewRemediationScreen() {
           2
         )
       )
-      // console.log("Remediation Data (summary):", JSON.stringify({ roomCount: remediationData.rooms?.length }, null, 2));
 
       const html = await generateHTML(ticket, remediationData) // Pass full ticket and remediationData
-      // console.log('Generated HTML for PDF (first 500 chars):', html.substring(0, 500) + '...');
 
       const { uri: tempUri } = await Print.printToFileAsync({
         html,
         width: 595,
         height: 842,
       })
-      console.log('PDF generated at temporary URI:', tempUri)
 
       const rawStreet = (ticket.street || 'Remediation_Report')
         .replace(/[^a-z0-9 ]/gi, '')
@@ -531,7 +500,6 @@ export default function ViewRemediationScreen() {
         console.log('No existing file to delete or minor error:', e.message)
       }
       await FileSystem.moveAsync({ from: tempUri, to: destUri })
-      console.log('PDF moved to:', destUri)
 
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert(

@@ -45,7 +45,6 @@ export const handleDownloadPhotos = async (
       const localUri = FileSystem.documentDirectory + localFileName
 
       const downloadResult = await FileSystem.downloadAsync(photo.uri, localUri)
-      console.log('Downloaded photo:', downloadResult.uri)
 
       await MediaLibrary.createAssetAsync(downloadResult.uri)
       downloadedPhotos++

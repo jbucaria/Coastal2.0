@@ -23,8 +23,6 @@ const escapeString = str => {
 }
 
 export const generatePdf = async ticket => {
-  console.log('[generatePdf_Simplified] Function called.')
-
   if (
     !ticket ||
     typeof ticket !== 'object' ||
@@ -38,9 +36,6 @@ export const generatePdf = async ticket => {
     console.error('[generatePdf_Simplified] Missing critical modules.')
     throw new Error('A required module is not available.')
   }
-  console.log(
-    '[generatePdf_Simplified] Modules checked. Ticket data validated.'
-  )
 
   const ticketNumber = escapeString(ticket.ticketNumber || 'N/A')
   const street = escapeString(ticket.street || 'Unknown Address')
@@ -57,9 +52,6 @@ export const generatePdf = async ticket => {
     streetPhoto = null,
   } = ticket
   if (remediationData) {
-    console.log(
-      `[generatePdf_Simplified] Using 'remediationData' for room details.`
-    )
   } else {
     console.log(
       `[generatePdf_Simplified] Using 'inspectionData' for room details.`
@@ -130,11 +122,6 @@ export const generatePdf = async ticket => {
       e.message
     )
     logoDataUri = companyLogoFirestoreUrl || ''
-    console.log(
-      logoDataUri
-        ? '[generatePdf_Simplified] Using Firestore logo as fallback.'
-        : '[generatePdf_Simplified] No logo available.'
-    )
   }
 
   const createdAtDateObj = createdAt?.seconds
@@ -159,9 +146,6 @@ export const generatePdf = async ticket => {
     Array.isArray(dataForRooms.rooms) &&
     dataForRooms.rooms.length > 0
   ) {
-    console.log(
-      `[generatePdf_Simplified] Processing ${dataForRooms.rooms.length} rooms.`
-    )
     roomsHTML = dataForRooms.rooms
       .map((room, index) => {
         const roomTitle = escapeString(room?.roomTitle || `Area ${index + 1}`)
@@ -391,14 +375,12 @@ export const generatePdf = async ticket => {
 
   let firebaseStorageDownloadUrl = null
   try {
-    console.log(`[generatePdf_Simplified] Generating PDF for: ${ticketNumber}`)
     const { uri: temporaryPdfUri } = await Print.printToFileAsync({
       html: htmlContent,
       base64: false,
       width: 595,
       height: 842,
     })
-    console.log(`[generatePdf_Simplified] Temp PDF URI: ${temporaryPdfUri}`)
 
     const rawTicketNumber = ticket.ticketNumber || 'UnknownTicket'
     const reportType = remediationData
@@ -435,33 +417,22 @@ export const generatePdf = async ticket => {
 
     const filenameInStorage = `${baseFilename}.pdf`
     const storagePath = `${filenameInStorage}`
-    console.log(
-      `[generatePdf_Simplified] Firebase Storage Path: ${storagePath}`
-    )
 
     const response = await fetch(temporaryPdfUri)
     if (!response.ok)
       throw new Error(`Failed to fetch temp PDF: ${response.status}`)
     const blob = await response.blob()
-    console.log(`[generatePdf_Simplified] PDF blob fetched. Size: ${blob.size}`)
 
     const storage = getStorage(app)
     const storageFileRef = ref(storage, storagePath)
-    console.log(`[generatePdf_Simplified] Uploading to: ${storagePath}`)
+
     const uploadTaskSnapshot = await uploadBytesResumable(
       storageFileRef,
       blob,
       { contentType: 'application/pdf' }
     )
-    console.log(
-      '[generatePdf_Simplified] Upload successful:',
-      uploadTaskSnapshot.state
-    )
 
     firebaseStorageDownloadUrl = await getDownloadURL(uploadTaskSnapshot.ref)
-    console.log(
-      `[generatePdf_Simplified] Download URL: ${firebaseStorageDownloadUrl}`
-    )
 
     const reportTimestamp = new Date()
     try {
@@ -485,9 +456,6 @@ export const generatePdf = async ticket => {
         },
         { merge: true }
       )
-      console.log(
-        `[generatePdf_Simplified] Main ticket ${rawTicketNumber} updated.`
-      )
     } catch (e) {
       console.error(
         '[generatePdf_Simplified] Error saving Firestore metadata:',
@@ -497,9 +465,6 @@ export const generatePdf = async ticket => {
 
     try {
       await FileSystem.deleteAsync(temporaryPdfUri, { idempotent: true })
-      console.log(
-        `[generatePdf_Simplified] Temp PDF deleted: ${temporaryPdfUri}`
-      )
     } catch (e) {
       console.warn('[generatePdf_Simplified] Could not delete temp PDF:', e)
     }

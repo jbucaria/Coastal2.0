@@ -139,7 +139,6 @@ const QuickBooksManagementScreen = () => {
   // Clear WebView cookies
   const clearQuickBooksSession = async () => {
     await WebBrowser.clearAll()
-    console.log('WebView cookies cleared')
   }
 
   // Automatic token refresh
@@ -147,7 +146,6 @@ const QuickBooksManagementScreen = () => {
     const checkTokenExpiration = () => {
       const now = Date.now()
       if (accessToken && tokenExpiresAt && now > tokenExpiresAt - 300000) {
-        console.log('Token nearing expiration, refreshing...')
         refreshQuickBooksToken().catch(err => {
           console.error('Failed to refresh token:', err)
           Alert.alert('Error', 'Failed to refresh token: ' + err.message)
@@ -163,10 +161,8 @@ const QuickBooksManagementScreen = () => {
 
   // Token exchange after OAuth redirect
   useEffect(() => {
-    console.log('AuthSession response:', response)
     if (response?.type === 'success') {
       const { code } = response.params
-      console.log('Authorization code:', code)
       const { clientId, clientSecret } = useAuthStore.getState()
 
       const tokenUrl =
@@ -189,7 +185,6 @@ const QuickBooksManagementScreen = () => {
       })
         .then(res => res.json())
         .then(async data => {
-          console.log('Token exchange response:', data)
           if (data.access_token) {
             const companyRef = doc(
               firestore,
@@ -211,8 +206,6 @@ const QuickBooksManagementScreen = () => {
               refreshToken: data.refresh_token,
               tokenExpiresAt: Date.now() + data.expires_in * 1000,
             })
-            console.log('Access token received:', data.access_token)
-            console.log('Refresh token received:', data.refresh_token)
           } else {
             console.error('Token exchange response:', data)
             Alert.alert('Error', 'Failed to obtain access token.')
@@ -226,7 +219,6 @@ const QuickBooksManagementScreen = () => {
       console.error('Auth error:', response)
       Alert.alert('Error', 'Authentication failed: ' + response.error)
     } else if (response?.type === 'cancel') {
-      console.log('OAuth flow canceled')
     }
   }, [response, setCredentials, quickBooksCompanyId, clientId])
 
@@ -276,7 +268,7 @@ const QuickBooksManagementScreen = () => {
           phone: customer.PrimaryPhone?.FreeFormNumber || '',
           address: customer.BillAddr || {},
         })) || []
-      console.log('Customer data:', customersData)
+
       await saveCustomersToFirestore(customersData)
       fetchCustomersFromFirestore()
       Alert.alert('Success', 'Customers synced')
@@ -339,7 +331,7 @@ const QuickBooksManagementScreen = () => {
           qtyOnHand: item.QtyOnHand || 0,
           incomeAccount: item.IncomeAccountRef || {},
         })) || []
-      console.log('Item data:', itemsData)
+
       await saveItemsToFirestore(itemsData)
       setItems(itemsData)
       Alert.alert('Success', 'Items synced')

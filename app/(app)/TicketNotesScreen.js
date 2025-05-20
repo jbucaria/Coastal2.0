@@ -81,7 +81,6 @@ const TicketNotesScreen = () => {
 
   useEffect(() => {
     if (!projectId) {
-      console.log('No projectId provided')
       setLoading(false)
       return
     }

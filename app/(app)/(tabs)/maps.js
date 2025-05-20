@@ -109,7 +109,7 @@ const TicketsMapScreen = () => {
       return
     }
     setLoading(true) // Ensure loading is true when fetching starts
-    console.log(`Fetching tickets for date (UTC): ${date.toISOString()}`)
+   
     try {
       // Calculate start and end of the day in UTC
       const startOfDayUTC = new Date(
@@ -142,12 +142,7 @@ const TicketsMapScreen = () => {
       const startTimestamp = startOfDayUTC // Use Date object directly if field is Timestamp
       const endTimestamp = endOfDayUTC // Use Date object directly if field is Timestamp
 
-      console.log(
-        'Querying Firestore between:',
-        startTimestamp,
-        'and',
-        endTimestamp
-      )
+ 
 
       const ticketsQuery = query(
         collection(firestore, 'tickets'),
@@ -157,7 +152,7 @@ const TicketsMapScreen = () => {
       )
 
       const snapshot = await getDocs(ticketsQuery)
-      console.log(`Found ${snapshot.docs.length} tickets.`)
+   
 
       const ticketData = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -165,7 +160,7 @@ const TicketsMapScreen = () => {
       }))
 
       // Geocode tickets after fetching
-      console.log('Geocoding ticket addresses...')
+     
       const ticketLocations = await Promise.all(
         ticketData.map(async ticket => {
           // Ensure address exists before geocoding
@@ -185,10 +180,10 @@ const TicketsMapScreen = () => {
       const validTickets = ticketLocations.filter(
         ticket => ticket.coordinates !== null
       )
-      console.log(`Geocoded ${validTickets.length} tickets successfully.`)
+    
       setTickets(validTickets)
     } catch (error) {
-      console.error('Error fetching tickets:', error)
+    
       Alert.alert('Error', 'Failed to fetch tickets: ' + error.message)
       setTickets([]) // Clear tickets on error
     } finally {
@@ -226,7 +221,7 @@ const TicketsMapScreen = () => {
         return null
       }
 
-      console.log(`Geocoding address: ${addressParts}`)
+    
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
           addressParts // Use the constructed address
@@ -236,7 +231,7 @@ const TicketsMapScreen = () => {
 
       if (data.status === 'OK' && data.results.length > 0) {
         const loc = data.results[0].geometry.location
-        console.log(`Geocode success for ${addressParts}:`, loc)
+       
         return { latitude: loc.lat, longitude: loc.lng }
       } else {
         console.warn(
@@ -293,9 +288,7 @@ const TicketsMapScreen = () => {
         tickets.length === 0 ||
         !tickets.some(t => t.coordinates)
       ) {
-        console.log(
-          'Skipping route fetch: Missing API key, location, or ticket coordinates.'
-        )
+       
         setRouteCoords([]) // Clear existing route if conditions not met
         // Set ordered tickets based on schedule if not optimizing
         if (!optimizeRoute) {
@@ -311,7 +304,7 @@ const TicketsMapScreen = () => {
 
       const validTicketCoords = tickets.filter(t => t.coordinates)
       if (validTicketCoords.length === 0) {
-        console.log('Skipping route fetch: No valid ticket coordinates found.')
+     
         setRouteCoords([])
         setOrderedTickets(tickets)
         return
@@ -333,19 +326,16 @@ const TicketsMapScreen = () => {
 
       const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${origin}&waypoints=${waypointsParam}&key=${GOOGLE_MAPS_API_KEY}`
 
-      console.log('Fetching directions URL:', directionsUrl) // Log the URL without the key for privacy if needed
 
       try {
         const response = await fetch(directionsUrl)
         const data = await response.json()
-        console.log('Directions API Response Status:', data.status)
 
         if (data.status === 'OK' && data.routes && data.routes.length > 0) {
           const route = data.routes[0]
           const encodedPolyline = route.overview_polyline.points
           const coords = decodePolyline(encodedPolyline)
           setRouteCoords(coords)
-          console.log(`Route polyline decoded with ${coords.length} points.`)
 
           // Handle waypoint order
           if (
@@ -355,10 +345,6 @@ const TicketsMapScreen = () => {
             const order = route.waypoint_order
             const optimized = order.map(idx => validTicketCoords[idx])
             setOrderedTickets(optimized)
-            console.log(
-              'Route optimized. Order:',
-              order.map(idx => validTicketCoords[idx].id)
-            )
           } else {
             // If not optimizing or order doesn't match, use scheduled order
             const scheduled = [...validTicketCoords].sort((a, b) => {
@@ -375,7 +361,6 @@ const TicketsMapScreen = () => {
               return 0 // Keep original order if dates are invalid
             })
             setOrderedTickets(scheduled)
-            console.log('Using scheduled order for tickets.')
           }
         } else {
           console.warn(
@@ -424,7 +409,6 @@ const TicketsMapScreen = () => {
       }
 
       if (coordinatesToFit.length > 0) {
-        console.log(`Fitting map to ${coordinatesToFit.length} coordinates.`)
         mapRef.current.fitToCoordinates(coordinatesToFit, {
           edgePadding: {
             top: headerHeight + 20,
@@ -436,7 +420,6 @@ const TicketsMapScreen = () => {
         })
       } else if (location) {
         // If only user location is available, center on it
-        console.log('Centering map on user location.')
         mapRef.current.animateToRegion(
           {
             ...location,
@@ -460,7 +443,6 @@ const TicketsMapScreen = () => {
 
   // Initialization effect
   useEffect(() => {
-    console.log('Initializing TicketsMapScreen...')
     getUserLocation() // Fetch location first
     // Fetching tickets now happens after location is potentially set
   }, []) // Run only once on mount

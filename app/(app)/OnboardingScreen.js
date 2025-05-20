@@ -62,7 +62,6 @@ const onboardingScreen = () => {
         full: data.description,
       })
     } else {
-      console.log('No details returned:', data)
       setAddress(prev => ({
         ...prev,
         street: data.description,
@@ -108,18 +107,14 @@ const onboardingScreen = () => {
   }
 
   const handleOnboarding = async () => {
-    console.log('handleOnboarding called, starting validations...')
     if (
       fullName.trim() === '' ||
       phone.trim() === '' ||
       address.full.trim() === ''
     ) {
-      console.log('Validation failed, missing required fields')
       setError('Display name, phone, and address are required.')
       return
     }
-
-    console.log('Passed validations, attempting setDoc...')
 
     try {
       const currentUser = auth.currentUser

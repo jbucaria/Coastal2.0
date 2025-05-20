@@ -75,7 +75,7 @@ const EditReportScreen = () => {
   useEffect(() => {
     if (ticket) {
       const existing = ticket.streetPhoto
-      console.log('Street Photo from ticket:', existing)
+
       if (existing && existing.downloadURL) {
         setStreetPhoto(existing)
       } else {
@@ -234,17 +234,16 @@ const EditReportScreen = () => {
   const handleSaveChanges = async () => {
     try {
       // Check if a PDF exists and delete it
-      console.log('Checking for existing PDF, ticket.pdfUrl:', ticket?.pdfUrl)
+
       if (ticket?.pdfUrl) {
         try {
           const url = new URL(ticket.pdfUrl)
           const storagePath = decodeURIComponent(
             url.pathname.substring(url.pathname.indexOf('/o/') + 3)
           ).split('?')[0]
-          console.log('Extracted storage path:', storagePath)
+
           const storageRef = ref(storage, storagePath)
           await deleteObject(storageRef)
-          console.log('Existing PDF deleted from storage:', storagePath)
         } catch (error) {
           console.error('Error deleting existing PDF:', error)
           // Continue with saving even if deletion fails
@@ -263,7 +262,6 @@ const EditReportScreen = () => {
         inspectionComplete: true,
         pdfUrl: deleteField(), // Clear the pdfUrl field
       })
-      console.log('Inspection data saved and pdfUrl cleared in Firestore')
 
       Alert.alert('Success', 'Inspection data saved successfully.')
       router.back() // Navigate back to ViewReportScreen

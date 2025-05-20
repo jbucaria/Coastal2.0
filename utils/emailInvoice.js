@@ -35,8 +35,6 @@ export const sendInvoiceEmailToQuickBooks = async (
       return null
     }
 
-    console.log('QuickBooks Email Invoice Response:', responseData)
-
     if (response.ok) {
       return responseData // This confirms the email was sent successfully.
     } else {

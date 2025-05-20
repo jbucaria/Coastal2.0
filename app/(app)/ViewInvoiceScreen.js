@@ -69,7 +69,7 @@ const ViewInvoiceScreen = () => {
     }
 
     try {
-      console.log('Refreshing token with refreshToken:', refreshToken)
+  
       const tokenUrl =
         'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
       const body = new URLSearchParams({
@@ -89,7 +89,7 @@ const ViewInvoiceScreen = () => {
       })
 
       const data = await tokenResponse.json()
-      console.log('Token refresh response:', data)
+
 
       if (data.access_token) {
         const expiresIn = Number(data.expires_in) || 3600 // Default to 1 hour if undefined
@@ -102,9 +102,9 @@ const ViewInvoiceScreen = () => {
           quickBooksCompanyId: useAuthStore.getState().quickBooksCompanyId,
         }
 
-        console.log('New auth data to save:', newAuthData)
+    
         await setCredentials(newAuthData)
-        console.log('setCredentials called in refreshAccessToken')
+      
         return true
       } else {
         throw new Error('Failed to refresh token: ' + JSON.stringify(data))
@@ -121,8 +121,7 @@ const ViewInvoiceScreen = () => {
 
   useEffect(() => {
     const now = Date.now()
-    console.log('Current time:', now)
-    console.log('Token expires at:', tokenExpiresAt)
+   
 
     const timeUntilExpiry = tokenExpiresAt - now
     const refreshThreshold = 5 * 60 * 1000 // 5 minutes in milliseconds
@@ -150,9 +149,9 @@ const ViewInvoiceScreen = () => {
 
   useEffect(() => {
     if (response?.type === 'success') {
-      console.log('OAuth process completed successfully:', response)
+    
       const { code } = response.params
-      console.log('Authorization code:', code)
+    
       const { clientId, clientSecret } = useAuthStore.getState()
 
       const tokenUrl =
@@ -175,7 +174,7 @@ const ViewInvoiceScreen = () => {
       })
         .then(res => res.json())
         .then(async data => {
-          console.log('Token exchange response:', data)
+ 
           if (data.access_token) {
             const companyRef = doc(
               firestore,
@@ -200,9 +199,9 @@ const ViewInvoiceScreen = () => {
               tokenExpiresAt: Date.now() + expiresIn * 1000,
             }
 
-            console.log('New auth data to save in useEffect:', newAuthData)
+      
             await setCredentials(newAuthData)
-            console.log('setCredentials called in useEffect')
+   
 
             if (needsTokenRefresh) {
               setNeedsTokenRefresh(false)
@@ -227,7 +226,7 @@ const ViewInvoiceScreen = () => {
       )
       setIsSending(false)
     } else if (response?.type === 'cancel') {
-      console.log('OAuth flow canceled')
+
       setIsSending(false)
     }
   }, [response, needsTokenRefresh])
@@ -309,7 +308,7 @@ const ViewInvoiceScreen = () => {
       setIsSending(false)
       return
     }
-    console.log('creating invoice')
+
     const finalLineItems = []
     groupedLineItems.forEach(room => {
       const roomNameLineItem = {
@@ -347,7 +346,7 @@ const ViewInvoiceScreen = () => {
       invoiceDate: invoiceDate.toISOString().split('T')[0],
       lineItems: finalLineItems,
     }
-    console.log('Invoice data:', invoiceData)
+
 
     const result = await sendInvoiceToQuickBooks(
       invoiceData,
@@ -355,7 +354,7 @@ const ViewInvoiceScreen = () => {
       clientId
     )
     if (result) {
-      console.log('Invoice successfully sent:', result)
+
       setIsSending(false)
       router.back()
     } else {

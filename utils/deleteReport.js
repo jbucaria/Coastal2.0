@@ -49,7 +49,6 @@ export const handleDeleteReport = async (
               deletePromises.push(deleteObject(pdfRef))
             }
             await Promise.all(deletePromises)
-            console.log('All files deleted successfully')
 
             const reportDocRef = doc(
               firestore,
@@ -57,7 +56,6 @@ export const handleDeleteReport = async (
               selectedReport.projectId
             )
             await deleteDoc(reportDocRef)
-            console.log('Report document deleted successfully')
 
             Alert.alert(
               'Success',

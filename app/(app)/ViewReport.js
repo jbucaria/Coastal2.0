@@ -47,49 +47,22 @@ const ViewReportScreen = () => {
   const marginBelowHeader = 8
 
   useEffect(() => {
-    console.log(
-      'ViewReportScreen effect - ticket ID:',
-      ticket?.id,
-      'ticket.inspectionPdfUrl:',
-      ticket?.inspectionPdfUrl,
-      'ticket.remediationPdfUrl:',
-      ticket?.remediationPdfUrl,
-      'current pdfUri state BEFORE this effect logic:',
-      pdfUri
-    )
-
     if (ticket) {
       const urlFromTicket =
         ticket.inspectionPdfUrl || ticket.remediationPdfUrl || ticket.pdfUrl
       const currentStoragePath =
         ticket.inspectionPdfStoragePath || ticket.remediationPdfStoragePath
-      // console.log(
-      //   'useEffect: URL derived from current ticket object:',
-      //   urlFromTicket
-      // )
-      // console.log('useEffect: Storage path from ticket:', currentStoragePath)
 
       if (urlFromTicket) {
         if (pdfUri !== urlFromTicket) {
-          console.log(
-            'useEffect: Syncing pdfUri state with URL from ticket object:',
-            urlFromTicket
-          )
           setPdfUri(urlFromTicket)
         }
       } else {
         if (pdfUri) {
-          console.log(
-            'useEffect: Ticket object has no PDF URL. Clearing existing pdfUri state:',
-            pdfUri
-          )
           setPdfUri(null)
         }
       }
     } else if (!ticketLoading && pdfUri) {
-      console.log(
-        'useEffect: No ticket data, and not loading. Clearing pdfUri.'
-      )
       setPdfUri(null)
     }
 
@@ -99,10 +72,6 @@ const ViewReportScreen = () => {
   }, [ticket, ticketLoading, ticketError])
 
   const handleGenerateReport = async () => {
-    console.log(
-      'handleGenerateReport - Ticket data being used:',
-      ticket ? { id: ticket.id } : null
-    )
     if (!ticket || typeof ticket !== 'object' || !ticket.id) {
       console.error('handleGenerateReport - Invalid ticket data:', ticket)
       return
@@ -110,12 +79,11 @@ const ViewReportScreen = () => {
     setIsProcessing(true)
     try {
       const newPdfRemoteUrl = await generatePdf(ticket)
-      console.log('Generated and uploaded PDF. Remote URL:', newPdfRemoteUrl)
 
       if (newPdfRemoteUrl) {
         setPdfUri(newPdfRemoteUrl)
         setIsViewerVisible(true)
-        console.log('Firestore ticket was updated by generatePdf.')
+
         if (typeof refreshTicket === 'function') {
           refreshTicket()
         }
@@ -187,10 +155,6 @@ const ViewReportScreen = () => {
               const storage = getStorage(firebaseApp)
               const pdfRef = ref(storage, storagePathToDelete)
               await deleteObject(pdfRef)
-              console.log(
-                'PDF deleted from Firebase Storage:',
-                storagePathToDelete
-              )
 
               const ticketDocRef = doc(firestore, 'tickets', ticket.id)
               const updates = {}
@@ -199,10 +163,6 @@ const ViewReportScreen = () => {
               updates[storagePathFieldToDelete] = deleteField()
 
               await updateDoc(ticketDocRef, updates)
-              console.log(
-                'PDF fields removed from Firestore ticket:',
-                ticket.id
-              )
 
               setPdfUri(null)
               setIsViewerVisible(false)
@@ -225,7 +185,6 @@ const ViewReportScreen = () => {
 
   const handleViewReport = () => {
     if (pdfUri) {
-      console.log('Viewing PDF with URI:', pdfUri)
       setIsViewerVisible(true)
     } else {
       console.warn(
@@ -236,14 +195,12 @@ const ViewReportScreen = () => {
 
   const handleShareReport = async () => {
     if (!pdfUri) {
-      console.log('No PDF URI available to share')
       return
     }
     let shareUri = pdfUri
     setIsProcessing(true)
 
     if (!shareUri.startsWith('file://')) {
-      console.log('Downloading remote PDF for sharing:', shareUri)
       try {
         const filenameTimestamp = Date.now()
         const remoteFilename =
@@ -294,7 +251,6 @@ const ViewReportScreen = () => {
   // >>>>>>>>>>>> ADDED MISSING FUNCTIONS handlePhotoPress and closePhoto HERE <<<<<<<<<<<<<<
   // ========================================================================
   const handlePhotoPress = uri => {
-    console.log('ViewReportScreen: handlePhotoPress CALLED with URI:', uri)
     if (uri) {
       setSelectedPhoto(uri)
     }
@@ -515,13 +471,7 @@ const ViewReportScreen = () => {
               trustAllCerts={false}
               source={{ uri: pdfUri, cache: true }}
               style={styles.pdf}
-              onLoadComplete={(numberOfPages, filePath) => {
-                console.log(
-                  `PDF loaded: ${numberOfPages} pages from ${
-                    filePath || pdfUri
-                  }`
-                )
-              }}
+              onLoadComplete={(numberOfPages, filePath) => {}}
               onError={error => {
                 console.error('PDF rendering error:', error)
                 Alert.alert('Error', 'Could not display PDF.')

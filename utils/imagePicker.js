@@ -16,12 +16,10 @@ async function pickAndUploadImage() {
   })
 
   if (result.canceled) {
-    console.log('User canceled image picker')
     return
   }
 
   const uri = result.assets[0].uri
-  console.log('Selected image URI:', uri)
 
   let blob
   try {
@@ -49,7 +47,7 @@ async function pickAndUploadImage() {
       },
       async () => {
         const downloadURL = await getDownloadURL(imageRef)
-        console.log('File uploaded successfully:', downloadURL)
+
         resolve(downloadURL)
       }
     )
