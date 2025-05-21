@@ -1,14 +1,32 @@
+// CustomCalendar.js
+'use client'
+
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isEqual,
+  isToday as fnsIsToday,
+} from 'date-fns' // Added isEqual
 import { enUS } from 'date-fns/locale'
 
 import Ionicons from '@expo/vector-icons/Ionicons'
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-const CustomCalendar = ({ selectedDate, onDateChange, onClose }) => {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate))
+const CustomCalendar = ({
+  selectedDate,
+  onDateChange,
+  onClose, // Prop for the action of the explicit "Close" button
+  showExplicitCloseButton = true, // New prop to control visibility of the calendar's own "Close" button
+  autoCloseOnDateSelect = true, // New prop to control if selecting a date calls onClose
+}) => {
+  const [currentMonth, setCurrentMonth] = useState(
+    startOfMonth(selectedDate || new Date())
+  ) // Ensure selectedDate has a fallback
 
   const prevMonth = () => {
     setCurrentMonth(
@@ -28,7 +46,10 @@ const CustomCalendar = ({ selectedDate, onDateChange, onClose }) => {
 
   const handleDayPress = day => {
     onDateChange(day)
-    onClose() // Close the calendar after selecting a date
+    if (autoCloseOnDateSelect && onClose) {
+      // Only call onClose if configured
+      onClose()
+    }
   }
 
   const start = startOfMonth(currentMonth)
@@ -45,7 +66,8 @@ const CustomCalendar = ({ selectedDate, onDateChange, onClose }) => {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.monthText}>
-          {format(currentMonth, 'MMMM yyyy', { locale: enUS })}
+          {format(currentMonth, 'MMMM yyyy', { locale: enUS })}{' '}
+          {/* Corrected format string */}
         </Text>
         <TouchableOpacity onPress={nextMonth}>
           <Ionicons name="arrow-forward" size={24} color="#333" />
@@ -65,17 +87,24 @@ const CustomCalendar = ({ selectedDate, onDateChange, onClose }) => {
           <View key={`empty-${i}`} style={styles.dayContainer} />
         ))}
         {calendarDays.map(day => {
+          // More robust check for selected and today
+          const dayFormatted = format(day, 'yyyy-MM-dd')
+          const selectedDateFormatted = selectedDate
+            ? format(selectedDate, 'yyyy-MM-dd')
+            : null
+          const todayFormatted = format(new Date(), 'yyyy-MM-dd')
+
           const isSelected =
-            format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-          const isToday =
-            format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+            selectedDateFormatted && dayFormatted === selectedDateFormatted
+          const isTodayDate = dayFormatted === todayFormatted
+
           return (
             <TouchableOpacity
-              key={format(day, 'yyyy-MM-dd')}
+              key={dayFormatted}
               style={[
                 styles.dayContainer,
                 isSelected && styles.selectedDayContainer,
-                isToday && styles.todayContainer,
+                isTodayDate && !isSelected && styles.todayContainer, // Apply today style only if not selected
               ]}
               onPress={() => handleDayPress(day)}
             >
@@ -83,7 +112,7 @@ const CustomCalendar = ({ selectedDate, onDateChange, onClose }) => {
                 style={[
                   styles.dayText,
                   isSelected && styles.selectedDayText,
-                  isToday && styles.todayText,
+                  isTodayDate && !isSelected && styles.todayText, // Apply today style only if not selected
                 ]}
               >
                 {format(day, 'd')}
@@ -93,87 +122,103 @@ const CustomCalendar = ({ selectedDate, onDateChange, onClose }) => {
         })}
       </View>
 
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Text style={styles.closeButtonText}>Close</Text>
-      </TouchableOpacity>
+      {/* Conditionally render the calendar's own Close button */}
+      {showExplicitCloseButton && onClose && (
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Text style={styles.closeButtonText}>Close Calendar</Text>{' '}
+          {/* More specific text */}
+        </TouchableOpacity>
+      )}
     </View>
   )
 }
 
+// Keep your existing styles, but here are some suggestions for compactness if needed:
 const styles = StyleSheet.create({
   calendarContainer: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 16,
-    margin: 20,
+    padding: 10, // Reduced padding
+    // margin: 20, // Margin will be handled by the modal view using this calendar
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+    width: '100%', // Make it take the width of its container in the modal
+    maxWidth: 340, // Max width if needed
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10, // Reduced margin
   },
   monthText: {
-    fontSize: 18,
+    fontSize: 17, // Slightly smaller
     fontWeight: 'bold',
     color: '#333',
   },
   daysOfWeek: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 8,
+    marginBottom: 6, // Reduced margin
   },
   dayOfWeekText: {
-    fontSize: 14,
+    fontSize: 12, // Smaller
     color: '#666',
+    width: `${100 / 7}%`, // Ensure equal width
+    textAlign: 'center',
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   dayContainer: {
-    width: '14.28%', // To fit 7 days in a row
-    aspectRatio: 1,
+    width: `${100 / 7}%`,
+    aspectRatio: 1.1, // Adjust aspect ratio for cell height
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 2,
+    padding: 1, // Minimal padding
   },
   dayText: {
-    fontSize: 16,
+    fontSize: 14, // Slightly smaller
     color: '#333',
   },
   selectedDayContainer: {
-    backgroundColor: '#0073BC',
-    borderRadius: 8,
+    backgroundColor: '#0073BC', // Your selection color
+    borderRadius: 20, // Make it circular or more rounded
+    // Ensure the container size doesn't change drastically, or use a fixed size for day cells
   },
   selectedDayText: {
     color: '#fff',
     fontWeight: 'bold',
   },
   todayContainer: {
+    // Style for today, only if not selected
+    // backgroundColor: '#FFF3E0', // A light highlight for today
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F39C12',
-    borderRadius: 8,
+    borderColor: '#F39C12', // Your "today" color
   },
   todayText: {
-    color: '#F39C12',
+    // Style for today's text, only if not selected
+    color: '#F39C12', // Your "today" color
+    // fontWeight: 'bold',
   },
   closeButton: {
-    backgroundColor: '#F39C12',
-    padding: 12,
-    borderRadius: 8,
+    // This is the calendar's own explicit close button
+    backgroundColor: '#6c757d', // Grey, less prominent than main actions
+    paddingVertical: 10, // Smaller padding
+    paddingHorizontal: 15,
+    borderRadius: 6,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12, // Reduced margin
   },
   closeButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '500', // Medium weight
+    fontSize: 14, // Smaller
   },
 })
 

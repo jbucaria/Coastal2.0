@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useRouter } from 'expo-router'
 import {
   Alert,
   Image,
@@ -28,20 +28,15 @@ import { firestore } from '@/firebaseConfig'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions'
 import { handleCreateTicket } from '@/utils/generateTicket'
 import { useUserStore } from '@/store/useUserStore'
-import PhotoGallery from '@/components/PhotoGallery'
 import { formatPhoneNumber, parseAddressComponents } from '@/utils/helpers'
 import { IconSymbol } from '@/components/ui/IconSymbol'
-import { formatAddress } from '@/utils/helpers'
 import { pickAndUploadPhotos } from '@/utils/photoUpload'
 import useAuthStore from '@/store/useAuthStore'
-import { createCustomerInQuickBooks } from '@/utils/quickbooksApi'
 import { ScrollView as RNScrollView } from 'react-native'
-import Constants from 'expo-constants' // *** CHANGE 1: Import Constants ***
+import Constants from 'expo-constants'
 
-// *** CHANGE 2: Retrieve Google Maps API key from Constants ***
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey
 
-// *** CHANGE 3: Add check for the key and log/alert if missing ***
 if (!GOOGLE_API_KEY) {
   const errorMsg =
     'Missing Google Maps API key for Places Autocomplete. Ensure GOOGLE_API_KEY is set in .env and loaded in app.config.js under extra.googleMapsApiKey. Restart server (-c).'

@@ -1,3 +1,4 @@
+// ReturnScheduleScreen.js
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -10,6 +11,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  // TextInput, // Not used for time input in this version
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { HeaderWithOptions } from '@/components/HeaderWithOptions'
@@ -18,74 +20,256 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  addDoc,
   arrayUnion,
+  Timestamp,
 } from 'firebase/firestore'
 import { firestore } from '@/firebaseConfig'
-import { CustomCalendar } from '@/components/CustomCalander' // Assuming correct spelling
+import { CustomCalendar } from '@/components/CustomCalander' // Ensure path is correct
 import { format } from 'date-fns'
+
+const ACCENT_COLOR = '#007AFF'
+const PLACEHOLDER_TEXT_COLOR = '#8E8E93'
+const INPUT_BACKGROUND_COLOR = '#F0F0F0' // A light grey for picker triggers
 
 const ReturnScheduleScreen = () => {
   const [allTickets, setAllTickets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isScheduling, setIsScheduling] = useState(false)
   const [schedulingTicket, setSchedulingTicket] = useState(null)
+
+  const [isScheduleModalVisible, setIsScheduleModalVisible] = useState(false)
+
+  // State for the pickers/inputs
+  const [selectedDatePart, setSelectedDatePart] = useState(new Date())
+  const [selectedStartTimeFull, setSelectedStartTimeFull] = useState(null)
+  const [selectedEndTimeFull, setSelectedEndTimeFull] = useState(null)
+
   const router = useRouter()
   const [headerHeight, setHeaderHeight] = useState(0)
 
-  // Subscribe only to tickets needing return
   useEffect(() => {
+    setLoading(true)
     const unsub = onSnapshot(
       collection(firestore, 'tickets'),
       snapshot => {
         const toSchedule = snapshot.docs
           .map(d => ({ id: d.id, ...d.data() }))
-          .filter(t => t.status === 'Return Needed' && !t.returnDate) // Tickets that are "Return Needed" AND don't have a returnDate yet
+          .filter(t => t.status === 'Return Needed' && !t.returnDate)
         setAllTickets(toSchedule)
         setLoading(false)
       },
       error => {
-        console.error('Error loading tickets:', error)
+        console.error('Error loading tickets for return scheduling:', error)
+        Alert.alert('Error', 'Failed to load tickets needing return.')
         setLoading(false)
       }
     )
     return () => unsub()
   }, [])
 
-  const onSchedulePress = ticket => {
+  const handleOpenScheduler = ticket => {
     setSchedulingTicket(ticket)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0) // Default to 9 AM tomorrow for calendar
+    setSelectedDatePart(
+      ticket.returnDate ? ticket.returnDate.toDate() : tomorrow
+    )
+    setSelectedStartTimeFull(null)
+    setSelectedEndTimeFull(null)
+    setIsScheduleModalVisible(true)
   }
 
-  const onScheduleDate = async date => {
-    if (!schedulingTicket) return
+  const closeAndResetSchedulerModals = () => {
+    setSchedulingTicket(null)
+    setIsScheduleModalVisible(false)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
+    setSelectedDatePart(tomorrow)
+    setSelectedStartTimeFull(null)
+    setSelectedEndTimeFull(null)
+    setIsScheduling(false)
+  }
+
+  // Helper to combine a date part with a time object (if your picker gives separate time)
+  // or to ensure the date part of a full Date object from a picker is correct.
+  const applyTimeToDate = (dateBase, timeSource) => {
+    if (!dateBase || !timeSource) return null
+    const newFullDate = new Date(dateBase) // Start with the selected date part
+    newFullDate.setHours(
+      timeSource.getHours(), // Get hours from the time picker's result
+      timeSource.getMinutes(), // Get minutes from the time picker's result
+      0,
+      0 // Reset seconds and milliseconds
+    )
+    return newFullDate
+  }
+
+  // --- Example functions you would call from your time pickers ---
+  // Replace these with the actual logic from your time picker components.
+  const handleStartTimeSelected = timeObjectFromPicker => {
+    // Assuming timeObjectFromPicker is a Date object with the selected time
+    // (its date part might be today or epoch, we'll correct it)
+    if (selectedDatePart && timeObjectFromPicker) {
+      const fullStartTime = applyTimeToDate(
+        selectedDatePart,
+        timeObjectFromPicker
+      )
+      setSelectedStartTimeFull(fullStartTime)
+    } else {
+      Alert.alert(
+        'Select Date First',
+        'Please select a date before setting the start time.'
+      )
+    }
+  }
+
+  const handleEndTimeSelected = timeObjectFromPicker => {
+    if (selectedDatePart && timeObjectFromPicker) {
+      const fullEndTime = applyTimeToDate(
+        selectedDatePart,
+        timeObjectFromPicker
+      )
+      setSelectedEndTimeFull(fullEndTime)
+    } else {
+      Alert.alert(
+        'Select Date First',
+        'Please select a date before setting the end time.'
+      )
+    }
+  }
+  // --- End of example functions ---
+
+  const handleConfirmScheduleReturn = async () => {
+    if (
+      !schedulingTicket ||
+      !selectedDatePart ||
+      !selectedStartTimeFull ||
+      !selectedEndTimeFull
+    ) {
+      Alert.alert(
+        'Missing Information',
+        'Please select a valid date, start time, and end time.'
+      )
+      return
+    }
+
+    if (selectedEndTimeFull <= selectedStartTimeFull) {
+      Alert.alert('Invalid Time', 'End time must be after start time.')
+      return
+    }
+
+    setIsScheduling(true)
+
+    const newStartTimeTimestamp = Timestamp.fromDate(selectedStartTimeFull)
+    const newEndTimeTimestamp = Timestamp.fromDate(selectedEndTimeFull)
+    const newTicketPrimaryDate = new Date(selectedStartTimeFull) // Date part is from start time
+    newTicketPrimaryDate.setHours(0, 0, 0, 0)
+    const newTicketPrimaryDateTimestamp =
+      Timestamp.fromDate(newTicketPrimaryDate)
+
     try {
-      const ticketRef = doc(firestore, 'tickets', schedulingTicket.id)
-      await updateDoc(ticketRef, {
-        returnDate: date,
-        status: 'Return Scheduled', // <--- UPDATE THE STATUS HERE
+      const originalTicketRef = doc(firestore, 'tickets', schedulingTicket.id)
+      await updateDoc(originalTicketRef, {
+        returnDate: newTicketPrimaryDateTimestamp,
+        status: 'Return Scheduled',
         history: arrayUnion({
-          status: 'Return Scheduled', // History entry
+          status: 'Return Scheduled',
           timestamp: new Date().toISOString(),
-          reason: 'Return visit scheduled via ReturnScheduleScreen.', // Optional: add more context
+          reason: `Return visit scheduled for ${format(
+            selectedStartTimeFull, // Use full start time for detailed reason
+            'MM/dd/yyyy h:mm a'
+          )} - ${format(selectedEndTimeFull, 'h:mm a')}.`,
         }),
       })
+
+      const returnTicketNumber = `${
+        schedulingTicket.ticketNumber || 'TICKET'
+      }-R${(schedulingTicket.returnCount || 0) + 1}`
+
+      const newReturnTicketData = {
+        address: schedulingTicket.address || '',
+        street: schedulingTicket.street || '',
+        city: schedulingTicket.city || '',
+        state: schedulingTicket.state || '',
+        zip: schedulingTicket.zip || '',
+        typeOfJob: schedulingTicket.typeOfJob || 'Return Visit',
+        occupied:
+          schedulingTicket.occupied !== undefined
+            ? schedulingTicket.occupied
+            : true,
+        inspectorName: schedulingTicket.inspectorName || 'Unassigned',
+        customerName: schedulingTicket.customerName || '',
+        customerEmail: schedulingTicket.customerEmail || '',
+        customerNumber: schedulingTicket.customerNumber || '',
+        homeOwnerName: schedulingTicket.homeOwnerName || '',
+        homeOwnerNumber: schedulingTicket.homeOwnerNumber || '',
+        originalTicketId: schedulingTicket.id,
+        ticketNumber: returnTicketNumber,
+        date: newTicketPrimaryDateTimestamp,
+        startTime: newStartTimeTimestamp,
+        endTime: newEndTimeTimestamp,
+        status: 'Open - Return',
+        isReturnVisit: true,
+        reason: schedulingTicket.returnNote || 'Scheduled return visit.',
+        inspectionComplete: false,
+        remediationRequired: false,
+        remediationComplete: false,
+        remediationData: {},
+        equipmentTotal: 0,
+        messageCount: 0,
+        onSite: false,
+        siteComplete: false,
+        returnDate: null,
+        returnNote: '',
+        returnCount: 0,
+        history: [
+          {
+            status: 'Open - Return',
+            timestamp: new Date().toISOString(),
+            reason: `Return visit created from ticket ${
+              schedulingTicket.ticketNumber
+            }. Original reason for return: ${
+              schedulingTicket.returnNote || 'N/A'
+            }.`,
+          },
+        ],
+      }
+
+      await addDoc(collection(firestore, 'tickets'), newReturnTicketData)
+
+      await updateDoc(originalTicketRef, {
+        returnCount: (schedulingTicket.returnCount || 0) + 1,
+      })
+
       Alert.alert(
         'Success',
-        `Return trip scheduled for ${format(
-          date,
+        `Return trip scheduled for ${schedulingTicket.ticketNumber} on ${format(
+          selectedStartTimeFull,
           'MM/dd/yyyy'
-        )}. Status updated to "Return Scheduled".`
+        )} (${format(selectedStartTimeFull, 'h:mm a')} - ${format(
+          selectedEndTimeFull,
+          'h:mm a'
+        )}). A new return ticket created.`
       )
+      closeAndResetSchedulerModals()
     } catch (err) {
-      console.error('Error scheduling return:', err)
-      Alert.alert('Error', 'Failed to schedule return trip.')
-    } finally {
-      setSchedulingTicket(null)
+      console.error('Error scheduling return and creating new ticket:', err)
+      Alert.alert(
+        'Error',
+        'Failed to schedule return. Please check details and try again.'
+      )
+      setIsScheduling(false)
     }
   }
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={styles.loaderCenter}>
+        <ActivityIndicator size="large" color={ACCENT_COLOR} />
+        <Text style={styles.loadingText}>Loading tickets...</Text>
       </View>
     )
   }
@@ -93,70 +277,154 @@ const ReturnScheduleScreen = () => {
   return (
     <View style={styles.container}>
       <HeaderWithOptions
-        title="Return Trips"
-        onBack={() => router.push('/(tabs)')} // Adjust as per your navigation stack
+        title="Schedule Returns"
+        onBack={() => router.push('/(tabs)')}
         options={[]}
         onHeightChange={setHeaderHeight}
       />
       <ScrollView
         style={{ flex: 1, paddingTop: headerHeight }}
-        contentContainerStyle={{ paddingBottom: 20 }} // Added padding at the bottom
+        contentContainerStyle={{ paddingBottom: 20 }}
       >
-        <Text style={styles.sectionHeader}>Return Trips to Schedule</Text>
+        <Text style={styles.sectionHeader}>
+          Tickets Awaiting Return Schedule
+        </Text>
         {allTickets.length > 0 ? (
           allTickets.map(ticket => (
-            <View key={ticket.id} style={styles.row}>
-              <View style={styles.info}>
-                <Text style={styles.address}>
-                  {ticket.street || 'N/A'}, {ticket.city || 'N/A'},{' '}
-                  {ticket.state || 'N/A'} {ticket.zip || ''}
+            <View key={ticket.id} style={styles.ticketRow}>
+              <View style={styles.ticketInfo}>
+                <Text style={styles.ticketAddress} numberOfLines={1}>
+                  {ticket.street || 'N/A Address'}, {ticket.city || 'N/A City'}
                 </Text>
-                {/* Displaying returnNote as the primary reason here as per component structure */}
+                <Text style={styles.ticketNumberText}>
+                  #{ticket.ticketNumber || 'N/A'}
+                </Text>
                 {ticket.returnNote && (
                   <Text style={styles.returnNoteLabel}>
-                    Note:{' '}
+                    Reason:{' '}
                     <Text style={styles.returnNoteText}>
                       {ticket.returnNote}
                     </Text>
                   </Text>
                 )}
-                {/* If you have a general 'reason' field distinct from 'returnNote', you can add it here */}
-                {ticket.reason && !ticket.returnNote && (
-                  <Text style={styles.reason}>Reason: {ticket.reason}</Text>
-                )}
               </View>
               <TouchableOpacity
-                style={styles.scheduleBtn}
-                onPress={() => onSchedulePress(ticket)}
+                style={styles.scheduleButton}
+                onPress={() => handleOpenScheduler(ticket)}
               >
-                <Text style={styles.scheduleText}>Schedule</Text>
+                <Text style={styles.scheduleButtonText}>Schedule</Text>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text style={styles.empty}>
-            No return trips to schedule at this time.
+          <Text style={styles.emptyMessage}>
+            No return trips currently need scheduling.
           </Text>
         )}
       </ScrollView>
-      <Modal
-        transparent
-        visible={!!schedulingTicket}
-        animationType="slide"
-        onRequestClose={() => setSchedulingTicket(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <CustomCalendar
-            selectedDate={
-              schedulingTicket?.returnDate
-                ? new Date(schedulingTicket.returnDate.seconds * 1000)
-                : new Date()
-            } // Pre-select existing or current date
-            onDateChange={onScheduleDate}
-            onClose={() => setSchedulingTicket(null)}
-          />
-        </View>
-      </Modal>
+
+      {/* Unified Modal for Date and Time Selection */}
+      {schedulingTicket && (
+        <Modal
+          transparent
+          visible={isScheduleModalVisible}
+          animationType="slide"
+          onRequestClose={closeAndResetSchedulerModals}
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView contentContainerStyle={styles.modalScrollViewContent}>
+              <View style={styles.dateTimeModalView}>
+                <CustomCalendar
+                  showExplicitCloseButton={false} // Hide the calendar's own close button
+                  selectedDate={selectedDatePart}
+                  onDateChange={setSelectedDatePart} // This updates selectedDatePart
+                  minDate={new Date()} // Optional: prevent selecting past dates
+                />
+
+                {/* Placeholder/Trigger for your Start Time Picker */}
+                <Text style={styles.inputLabel}>Start Time:</Text>
+                <TouchableOpacity
+                  style={styles.timePickerTrigger}
+                  onPress={() => {
+                    // HERE YOU WOULD TRIGGER YOUR TIME PICKER COMPONENT for Start Time
+                    // For example, if it's a modal: setIsStartTimePickerVisible(true)
+                    // Its onConfirm/onSelect should call handleStartTimeSelected(timeObject)
+                    Alert.alert(
+                      'Time Picker',
+                      'Integrate your Start Time Picker here.'
+                    )
+                  }}
+                >
+                  <Text
+                    style={
+                      selectedStartTimeFull
+                        ? styles.timePickerText
+                        : styles.timePickerPlaceholderText
+                    }
+                  >
+                    {selectedStartTimeFull
+                      ? format(selectedStartTimeFull, 'h:mm a')
+                      : 'Select Start Time'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Placeholder/Trigger for your End Time Picker */}
+                <Text style={styles.inputLabel}>End Time:</Text>
+                <TouchableOpacity
+                  style={styles.timePickerTrigger}
+                  onPress={() => {
+                    // HERE YOU WOULD TRIGGER YOUR TIME PICKER COMPONENT for End Time
+                    // Its onConfirm/onSelect should call handleEndTimeSelected(timeObject)
+                    Alert.alert(
+                      'Time Picker',
+                      'Integrate your End Time Picker here.'
+                    )
+                  }}
+                >
+                  <Text
+                    style={
+                      selectedEndTimeFull
+                        ? styles.timePickerText
+                        : styles.timePickerPlaceholderText
+                    }
+                  >
+                    {selectedEndTimeFull
+                      ? format(selectedEndTimeFull, 'h:mm a')
+                      : 'Select End Time'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.confirmScheduleButton,
+                    isScheduling && styles.disabledButton,
+                  ]}
+                  onPress={handleConfirmScheduleReturn}
+                  disabled={isScheduling}
+                >
+                  {isScheduling ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.confirmScheduleButtonText}>
+                      Confirm & Create Return Ticket
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.cancelButtonModal,
+                    isScheduling && styles.disabledButton,
+                  ]}
+                  onPress={closeAndResetSchedulerModals}
+                  disabled={isScheduling}
+                >
+                  <Text style={styles.cancelButtonModalText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
     </View>
   )
 }
@@ -164,82 +432,158 @@ const ReturnScheduleScreen = () => {
 export default ReturnScheduleScreen
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' }, // Lightened background
-  center: {
+  container: { flex: 1, backgroundColor: '#f4f6f8' },
+  loaderCenter: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f4f6f8',
   },
-  // datePicker: { padding: 12, alignItems: 'center' }, // Not used directly
-  // dateText: { fontSize: 18, fontWeight: '600' }, // Not used directly
+  loadingText: { marginTop: 10, fontSize: 16, color: '#555' },
   sectionHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    paddingHorizontal: 16,
     marginTop: 16,
-    marginBottom: 8,
-    marginHorizontal: 16, // Added horizontal margin
-    fontSize: 18, // Slightly larger
-    fontWeight: '700',
-    color: '#343a40', // Darker grey
+    marginBottom: 10,
   },
-  row: {
+  ticketRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16, // Increased padding
-    paddingHorizontal: 16, // Added horizontal padding
-    borderBottomWidth: 1,
-    borderColor: '#dee2e6', // Lighter border
-    backgroundColor: '#fff', // White background for rows
-    marginHorizontal: 8, // Card-like appearance
-    borderRadius: 6, // Rounded corners
-    marginBottom: 8, // Space between cards
-    elevation: 1, // Subtle shadow for Android
-    shadowColor: '#000', // Shadow for iOS
+    backgroundColor: '#fff',
+    padding: 15,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  info: { flex: 1, paddingRight: 12 }, // Increased paddingRight
-  address: {
+  ticketInfo: { flex: 1, marginRight: 10 },
+  ticketAddress: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#212529',
-    marginBottom: 4,
-  }, // Darker address
-  reason: { fontSize: 13, color: '#495057', marginTop: 4 }, // Standard grey for reason
+    fontWeight: '500',
+    color: '#37474F',
+    marginBottom: 3,
+  },
+  ticketNumberText: { fontSize: 12, color: '#78909C', marginBottom: 4 },
   returnNoteLabel: {
     fontSize: 13,
-    color: '#007bff', // Blue to highlight it's a specific note
-    marginTop: 4,
+    color: ACCENT_COLOR,
     fontWeight: '500',
+    marginTop: 4,
   },
   returnNoteText: {
     fontWeight: 'normal',
-    color: '#495057', // Standard grey for the note text
+    color: '#546E7A',
     fontStyle: 'italic',
   },
-  // actions: { minWidth: 80, alignItems: 'flex-end' }, // Not directly used
-  scheduleBtn: {
-    backgroundColor: '#007bff', // Primary blue
-    paddingHorizontal: 12, // More padding
-    paddingVertical: 8,
-    borderRadius: 5,
+  scheduleButton: {
+    backgroundColor: ACCENT_COLOR,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
   },
-  scheduleText: { color: '#fff', fontSize: 13, fontWeight: '500' }, // Slightly bolder
-  // badge: { // Not used in this screen directly
-  //   backgroundColor: '#FF9800',
-  //   color: '#fff',
-  //   paddingHorizontal: 6,
-  //   paddingVertical: 2,
-  //   borderRadius: 4,
-  //   fontSize: 12,
-  //   overflow: 'hidden',
-  // },
-  empty: { textAlign: 'center', marginTop: 24, color: '#6c757d', fontSize: 15 }, // More prominent empty message
+  scheduleButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  emptyMessage: {
+    textAlign: 'center',
+    marginTop: 30,
+    color: '#777',
+    fontSize: 16,
+    paddingHorizontal: 20,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)', // Darker overlay
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
+  modalScrollViewContent: {
+    // Ensure modal content can scroll if needed
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  dateTimeModalView: {
+    marginVertical: 20, // Add vertical margin for scrollability
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20, // Adjusted padding
+    alignItems: 'stretch',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: '90%',
+    maxWidth: 450,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center', // Adjusted margin
+  },
+  modalSubText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 15,
+    textAlign: 'center', // Adjusted margin
+  },
+  inputLabel: {
+    // Style for labels above pickers/calendar
+    fontSize: 15,
+    color: '#455A64',
+    marginBottom: 6,
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  timePickerTrigger: {
+    // Style for the TouchableOpacity that triggers your time picker
+    backgroundColor: INPUT_BACKGROUND_COLOR,
+    borderColor: '#B0BEC5',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12, // Make it look like an input
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    alignItems: 'flex-start', // Align text to left
+  },
+  timePickerText: {
+    fontSize: 16,
+    color: '#37474F',
+  },
+  timePickerPlaceholderText: {
+    fontSize: 16,
+    color: PLACEHOLDER_TEXT_COLOR,
+  },
+  confirmScheduleButton: {
+    backgroundColor: '#28a745',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 20, // More space before confirm
+  },
+  confirmScheduleButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cancelButtonModal: {
+    backgroundColor: '#6c757d',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  cancelButtonModalText: { color: 'white', fontWeight: '500', fontSize: 15 },
+  disabledButton: { opacity: 0.5 },
 })

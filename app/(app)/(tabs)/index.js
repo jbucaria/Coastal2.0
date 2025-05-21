@@ -96,23 +96,15 @@ const TicketsScreen = () => {
         999
       )
       filtered = filtered.filter(ticket => {
-        let matchesStartTime = false
+        let matchesPrimaryDate = false
+        // Use 'startTime' to determine the primary date for ANY ticket (original or return)
         if (ticket.startTime) {
           const t = ticket.startTime.toDate
             ? ticket.startTime.toDate()
             : new Date(ticket.startTime)
-          matchesStartTime = t >= startOfDay && t <= endOfDay
+          matchesPrimaryDate = t >= startOfDay && t <= endOfDay
         }
-
-        let matchesReturnDate = false
-        if (ticket.returnDate) {
-          const r = ticket.returnDate.toDate
-            ? ticket.returnDate.toDate()
-            : new Date(ticket.returnDate)
-          matchesReturnDate = r >= startOfDay && r <= endOfDay
-        }
-
-        return matchesStartTime || matchesReturnDate
+        return matchesPrimaryDate // <<--- MODIFIED: Only check the ticket's primary date/startTime
       })
     }
 
