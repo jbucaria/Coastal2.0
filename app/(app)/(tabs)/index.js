@@ -9,8 +9,18 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  TextInput,
+  Button,
+  Alert,
 } from 'react-native'
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import { firestore } from '@/firebaseConfig'
 import { router } from 'expo-router'
 import { TicketCard } from '@/components/TicketCard'
@@ -29,6 +39,8 @@ const TicketsScreen = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isCustomCalendarVisible, setIsCustomCalendarVisible] = useState(false)
   const [headerHeight, setHeaderHeight] = useState(0)
+  const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState(false)
+  const [feedbackText, setFeedbackText] = useState('')
 
   const scrollY = useRef(new Animated.Value(0)).current
   const floatingOpacity = scrollY.interpolate({
@@ -36,6 +48,29 @@ const TicketsScreen = () => {
     outputRange: [1, 0],
     extrapolate: 'clamp',
   })
+
+  const handleOpenFeedback = () => setIsFeedbackModalVisible(true)
+  const handleCloseFeedback = () => {
+    setIsFeedbackModalVisible(false)
+    setFeedbackText('')
+  }
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) {
+      Alert.alert('Please enter feedback before submitting.')
+      return
+    }
+    try {
+      await addDoc(collection(firestore, 'feedback'), {
+        message: feedbackText.trim(),
+        created: serverTimestamp(),
+      })
+      Alert.alert('Thank you for your feedback!')
+      handleCloseFeedback()
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      Alert.alert('Failed to submit feedback. Please try again.')
+    }
+  }
 
   useEffect(() => {
     const baseQuery = query(
@@ -240,20 +275,63 @@ const TicketsScreen = () => {
           </View>
         </Modal>
 
+        <Modal
+          visible={isFeedbackModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={handleCloseFeedback}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.feedbackModalContent}>
+              <Text style={styles.feedbackModalTitle}>Send Feedback</Text>
+              <TextInput
+                style={styles.feedbackInput}
+                multiline
+                placeholder="Describe the issue or suggestion..."
+                value={feedbackText}
+                onChangeText={setFeedbackText}
+              />
+              <View style={styles.feedbackButtonsContainer}>
+                <View style={styles.feedbackButton}>
+                  <Button title="Cancel" onPress={handleCloseFeedback} />
+                </View>
+                <View style={styles.feedbackButton}>
+                  <Button title="Submit" onPress={handleSubmitFeedback} />
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Floating Action Button */}
         <Animated.View
           style={{
             position: 'absolute',
             right: 24,
-            bottom: Platform.OS === 'ios' ? 80 : 60,
+            bottom: Platform.OS === 'ios' ? 90 : 70,
             opacity: floatingOpacity,
           }}
         >
           <FloatingButton
             onPress={() => router.push('/CreateTicketScreen')}
             title="Ticket"
-            // animatedOpacity={floatingOpacity} // Pass opacity directly if FloatingButton supports it, or wrap it. Here it's on the parent View.
-            iconName="plus.circle" // Ensure this icon name is valid for your Icon component
+            iconName="plus.circle"
+            size={32}
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={{
+            position: 'absolute',
+            right: 24,
+            bottom: Platform.OS === 'ios' ? 0 : 0,
+            opacity: floatingOpacity,
+          }}
+        >
+          <FloatingButton
+            onPress={handleOpenFeedback}
+            title="Feedback"
+            iconName="bubble.left.and.text.bubble.right.fill"
             size={32}
           />
         </Animated.View>
@@ -276,7 +354,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingBottom: 120, // Increased padding for FAB
+    paddingBottom: 200,
   },
   centeredMessageContainer: {
     // Added for centering loading/no tickets text
@@ -295,5 +373,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)', // Slightly darker overlay
+  },
+  feedbackModalContent: {
+    backgroundColor: 'white',
+    width: '90%',
+    padding: 20,
+    borderRadius: 8,
+  },
+  feedbackModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  feedbackInput: {
+    height: 100,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 15,
+    textAlignVertical: 'top',
+  },
+  feedbackButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  feedbackButton: {
+    marginLeft: 10,
   },
 })
