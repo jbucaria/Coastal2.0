@@ -19,7 +19,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
-import DateTimePicker from '@react-native-community/datetimepicker' // Keep for Date picking
+// REMOVE: import DateTimePicker from '@react-native-community/datetimepicker' // No longer needed
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete'
 import 'react-native-get-random-values'
 import * as ImagePicker from 'expo-image-picker'
@@ -35,6 +35,7 @@ import useAuthStore from '@/store/useAuthStore'
 import { ScrollView as RNScrollView } from 'react-native'
 import Constants from 'expo-constants'
 
+import { CustomCalendar } from '@/components/CustomCalander'
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey
 
 if (!GOOGLE_API_KEY) {
@@ -135,8 +136,8 @@ const CreateTicketScreen = () => {
   const [inspectorModalVisible, setInspectorModalVisible] = useState(false)
   const [addPhotoModalVisible, setAddPhotoModalVisible] = useState(false)
 
-  // State for Native Date Picker (only for Date)
-  const [showDatePicker, setShowDatePicker] = useState(false)
+  // State for Custom Calendar Modal (replacing native date picker)
+  const [showCalendarModal, setShowCalendarModal] = useState(false) // Changed name
 
   // State for Custom Time Picker Modal
   const [customTimePickerModalVisible, setCustomTimePickerModalVisible] =
@@ -305,32 +306,27 @@ const CreateTicketScreen = () => {
     setSuggestions(filtered)
   }, [searchQuery, allCustomers])
 
-  // Date picker change handlers
-  const handleDateChange = (event, date) => {
-    setShowDatePicker(false) // Always hide after selection
-    if (date) {
-      setSelectedDate(date)
-      // Update start and end times to use the new date
-      const newStartTime = new Date(startTime)
-      newStartTime.setFullYear(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      )
-      const newEndTime = new Date(endTime)
-      newEndTime.setFullYear(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      )
-      setStartTime(newStartTime)
-      setEndTime(newEndTime)
-      setNewTicket(prev => ({
-        ...prev,
-        startTime: newStartTime,
-        endTime: newEndTime,
-      }))
-    }
+  // Date picker change handlers - now using CustomCalendar
+  const handleDateSelection = date => {
+    // Renamed from handleDayPress to be more general
+    setSelectedDate(date)
+    // Update start and end times to use the new date
+    const newStartTime = new Date(startTime)
+    newStartTime.setFullYear(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    )
+    const newEndTime = new Date(endTime)
+    newEndTime.setFullYear(date.getFullYear(), date.getMonth(), date.getDate())
+    setStartTime(newStartTime)
+    setEndTime(newEndTime)
+    setNewTicket(prev => ({
+      ...prev,
+      startTime: newStartTime,
+      endTime: newEndTime,
+    }))
+    setShowCalendarModal(false) // Hide calendar modal after selection
   }
 
   // Address handlers (from AddressModal)
@@ -651,24 +647,32 @@ const CreateTicketScreen = () => {
                 <View style={styles.dateTimeSection}>
                   <Text style={styles.label}>Date:</Text>
                   <TouchableOpacity
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={() => setShowCalendarModal(true)} // Open Custom Calendar Modal
                     style={styles.dateTimeButton}
                   >
                     <Text style={styles.dateTimeText}>
                       {formatDate(selectedDate)}
                     </Text>
                   </TouchableOpacity>
-                  {/* Native Date Picker */}
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={selectedDate}
-                      mode="date"
-                      // Use 'calendar' or 'spinner' display mode for iOS
-                      // 'default' for Android
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={handleDateChange}
-                    />
-                  )}
+                  {/* Custom Calendar Modal */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={showCalendarModal}
+                    onRequestClose={() => setShowCalendarModal(false)}
+                  >
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Select Date</Text>
+                        <CustomCalendar
+                          selectedDate={selectedDate} // Pass the currently selected date
+                          onDateChange={handleDateSelection} // Handle date changes
+                          onClose={() => setShowCalendarModal(false)} // Callback to close modal
+                        />
+                        {/* Removed the internal close button since the CustomCalendar will now call onClose directly */}
+                      </View>
+                    </View>
+                  </Modal>
 
                   <Text style={styles.label}>Start Time:</Text>
                   <TouchableOpacity
@@ -707,7 +711,6 @@ const CreateTicketScreen = () => {
                   }}
                   placeholder="Search address..."
                   query={{
-                    // *** CHANGE 4: Use the GOOGLE_API_KEY variable ***
                     key: GOOGLE_API_KEY || '', // Use loaded key or empty string if missing
                     language: 'en',
                     components: 'country:us',

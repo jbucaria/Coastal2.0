@@ -125,7 +125,7 @@ const CustomCalendar = ({
       {/* Conditionally render the calendar's own Close button */}
       {showExplicitCloseButton && onClose && (
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close Calendar</Text>{' '}
+          <Text style={styles.closeButtonText}>Close Calendar</Text>
           {/* More specific text */}
         </TouchableOpacity>
       )}

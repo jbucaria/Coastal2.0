@@ -20,7 +20,7 @@ const _layout = () => {
       <Stack.Screen name="ViewRemediationScreen" />
       <Stack.Screen name="ButtonSampleScreen" />
       <Stack.Screen name="AddTicketScreen" />
-
+      <Stack.Screen name="ScheduleReturnDetailsScreen" />
       <Stack.Screen
         name="EditRemediationScreen"
         options={{ headerShown: true, headerTitle: 'Edit Remediation' }}
