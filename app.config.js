@@ -25,7 +25,7 @@ export default ({ config }) => {
         projectId:
           process.env.EAS_PROJECT_ID ||
           config?.eas?.projectId ||
-          'YOUR_EAS_PROJECT_ID_HERE', // Example with fallback
+          '618e04fc-22cb-4d24-9bf7-530fb7444d97', // Example with fallback
       },
     },
     // Explicitly define other essential config properties if needed

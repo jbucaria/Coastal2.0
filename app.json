@@ -1,17 +1,18 @@
 {
   "expo": {
     "name": "Coastal",
-    "slug": "coastal",
+    "slug": "Coastal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/appicon.png",
     "scheme": "coastalrestorationservice",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "associatedDomains": ["applinks:coastalrestorationservice.com"],
       "supportsTablet": true,
       "bundleIdentifier": "com.jbucaria.Coastal",
+      "buildNumber": "1.0.0",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "LSApplicationQueriesSchemes": ["comgooglemaps"],
