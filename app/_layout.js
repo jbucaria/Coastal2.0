@@ -124,7 +124,7 @@ export default function RootLayout() {
     // User is logged in
     if (!user || !user.onboarded) {
       // User isn’t set or onboarded yet – go to onboarding
-      router.replace('/onboarding')
+      router.replace('/OnboardingScreen')
       return
     }
 

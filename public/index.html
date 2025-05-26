@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Coastal Restoration Services - Revitalize Your Coastline</title>
+    <title>Coastal Restoration Services - Protecting Your Property</title>
     <style>
-      /* ---------------------- BASE RESET ---------------------- */
+      /* ---------------------- BASE RESET & FONT IMPORT (Optional) ---------------------- */
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500&display=swap');
+
       *,
       *::before,
       *::after {
@@ -13,43 +15,93 @@
         margin: 0;
         padding: 0;
       }
-      html,
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa;
-        color: #333;
-        height: 100%;
+
+      html {
         scroll-behavior: smooth;
+        font-size: 16px; /* Base font size */
       }
 
-      /* ---------------------- ROOT VARIABLES ---------------------- */
+      body {
+        font-family: 'Roboto', Arial, sans-serif;
+        background-color: var(--background-main);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ---------------------- ROOT VARIABLES (New Palette) ---------------------- */
       :root {
-        --primary-color: #263238; /* A deep, gray-ish tone referencing the fish silhouette */
-        --secondary-color: #1e88e5; /* A coastal blue for highlights */
-        --accent-color: #ff5722; /* A pop of bright color for buttons/links */
-        --light-bg: #ffffff;
-        --gray-bg: #e0e0e0;
+        --primary-blue: #005f73; /* Deep Teal/Ocean Blue */
+        --secondary-blue: #0a9396; /* Lighter Teal */
+        --accent-sand: #e9d8a6; /* Sandy Beige for accents */
+        --accent-coral: #ee9b00; /* Warm Coral/Orange for CTAs */
+        --neutral-light: #f8f9fa; /* Off-white for backgrounds */
+        --neutral-medium: #dee2e6; /* Light Gray for borders/dividers */
+        --neutral-dark: #343a40; /* Dark Gray for text */
+        --text-primary: #212529; /* Slightly off-black for body text */
+        --text-light: #ffffff;
+        --white: #ffffff;
+        --shadow-light: rgba(0, 0, 0, 0.05);
+        --shadow-medium: rgba(0, 0, 0, 0.1);
+
+        --font-heading: 'Montserrat', sans-serif;
+        --font-body: 'Roboto', sans-serif;
       }
 
       /* ---------------------- GLOBAL WRAPPER ---------------------- */
       #wrapper {
+        flex: 1;
         display: flex;
         flex-direction: column;
-        min-height: 100vh;
+      }
+
+      /* ---------------------- UTILITY CLASSES ---------------------- */
+      .container {
+        width: 90%;
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .section-padding {
+        padding: 4rem 0;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .section-title {
+        font-family: var(--font-heading);
+        font-size: 2.5rem;
+        color: var(--primary-blue);
+        margin-bottom: 1rem;
+        font-weight: 700;
+        text-align: center;
+      }
+      .section-subtitle {
+        font-family: var(--font-body);
+        font-size: 1.1rem;
+        color: var(--neutral-dark);
+        margin-bottom: 3rem;
+        text-align: center;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
       }
 
       /* ---------------------- HEADER ---------------------- */
       header {
         position: sticky;
         top: 0;
-        z-index: 999;
-        background-color: var(--primary-color);
-        padding: 1rem;
+        z-index: 1000;
+        background-color: var(--white);
+        box-shadow: 0 2px 10px var(--shadow-medium);
+        padding: 1rem 0;
       }
       .header-inner {
-        width: 90%;
-        max-width: 1200px;
-        margin: 0 auto;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -57,302 +109,890 @@
       .header-logo {
         display: flex;
         align-items: center;
+        text-decoration: none;
       }
-      /* Example fish silhouette (replace with your actual image or brand mark) */
       .header-logo img {
-        height: 50px;
+        height: 50px; /* Adjust as needed */
         margin-right: 0.75rem;
       }
       .site-title {
-        color: #fff;
-        font-size: 1.7rem;
-        font-weight: bold;
-        letter-spacing: 1px;
+        color: var(--primary-blue);
+        font-family: var(--font-heading);
+        font-size: 1.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
       }
       nav a {
-        color: #fff;
+        color: var(--neutral-dark);
         text-decoration: none;
-        margin-left: 1.5rem;
-        transition: color 0.2s ease;
-        font-weight: 600;
+        margin-left: 2rem;
+        font-family: var(--font-body);
+        font-weight: 500;
+        font-size: 1rem;
+        transition: color 0.3s ease;
+        position: relative;
+        padding-bottom: 0.25rem;
       }
-      nav a:hover {
-        color: var(--accent-color);
+      nav a::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background-color: var(--accent-coral);
+        transition: width 0.3s ease;
+      }
+      nav a:hover,
+      nav a.active {
+        color: var(--accent-coral);
+      }
+      nav a:hover::after,
+      nav a.active::after {
+        width: 100%;
+      }
+      .mobile-nav-toggle {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--primary-blue);
+        cursor: pointer;
       }
 
       /* ---------------------- HERO SECTION ---------------------- */
       .hero {
-        background: url('https://picsum.photos/1200/600/?grayscale')
-          center/cover no-repeat;
-        position: relative;
-        height: 60vh;
+        background: linear-gradient(
+            rgba(0, 95, 115, 0.7),
+            rgba(0, 95, 115, 0.85)
+          ),
+          url('https://picsum.photos/1600/900/?blur=2&nature,water')
+            center/cover no-repeat;
+        background-color: var(--primary-blue);
+        color: var(--white);
+        padding: 6rem 0;
+        text-align: center;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        text-align: center;
-        color: #fff;
-        overflow: hidden;
+        min-height: 70vh;
       }
-      /* Subtle overlay referencing the fish silhouette style */
-      .hero::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          to bottom,
-          rgba(38, 50, 56, 0.4),
-          rgba(38, 50, 56, 0.7)
-        );
-        z-index: 1;
-      }
-      .hero h1,
-      .hero p {
-        position: relative;
-        z-index: 2;
-        margin: 1rem 0;
+      .hero-content {
+        max-width: 800px;
       }
       .hero h1 {
-        font-size: 3rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
+        font-family: var(--font-heading);
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
       }
       .hero p {
-        font-size: 1.2rem;
-        max-width: 600px;
-        margin: 0 auto;
-        line-height: 1.4;
+        font-family: var(--font-body);
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        line-height: 1.7;
+        opacity: 0.9;
       }
-      .hero .cta-button {
+      .cta-button {
         display: inline-block;
-        padding: 0.8rem 1.5rem;
-        background: var(--accent-color);
-        color: #fff;
+        padding: 0.9rem 2.2rem;
+        background: var(--accent-coral);
+        color: var(--white);
         text-decoration: none;
-        border-radius: 4px;
-        margin-top: 1rem;
-        font-weight: bold;
-        transition: background 0.3s;
+        border-radius: 50px;
+        font-family: var(--font-heading);
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
       }
-      .hero .cta-button:hover {
-        background: #e64a19; /* Slightly darker accent color */
+      .cta-button:hover {
+        background-color: #d17a00;
+        transform: translateY(-2px);
       }
 
-      /* ---------------------- MAIN CONTENT ---------------------- */
+      /* ---------------------- MAIN CONTENT STYLING ---------------------- */
       main {
         flex: 1;
-        width: 90%;
-        max-width: 1100px;
-        margin: 2rem auto;
-        padding-bottom: 2rem;
+        background-color: var(--neutral-light);
       }
 
-      /* "Vertical" styled heading reminiscent of T-shirt text alignment */
-      .vertical-heading {
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
-        font-weight: bold;
-        font-size: 1.2rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--primary-color);
-        margin-right: 1rem;
+      .content-section {
+        background-color: var(--white);
+        margin-bottom: 2rem;
+        padding: 3rem 0;
+      }
+      .content-section:nth-child(even) {
+        background-color: var(--neutral-light);
       }
 
       /* About Section */
-      .about-section {
-        margin-bottom: 3rem;
+      #about {
+        background-color: var(--white);
       }
-      .about-section h2 {
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-        font-size: 1.8rem;
+      .about-section-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
       }
-      .about-section p {
+      .about-text p {
         margin-bottom: 1rem;
-        line-height: 1.5;
+        font-size: 1.05rem;
+        color: var(--neutral-dark);
+      }
+      .about-image img {
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px var(--shadow-medium);
       }
 
       /* Services Section */
-      .services-section {
-        margin-bottom: 3rem;
-      }
-      .services-section h2 {
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-        font-size: 1.8rem;
+      #services {
+        background-color: var(--neutral-light);
       }
       .service-cards {
         display: grid;
         gap: 2rem;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       }
       .service-card {
-        background-color: var(--light-bg);
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease;
+        background-color: var(--white);
+        border: 1px solid var(--neutral-medium);
+        border-radius: 12px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 5px 15px var(--shadow-light);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
       }
       .service-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-8px);
+        box-shadow: 0 12px 25px var(--shadow-medium);
+      }
+      .service-card .icon-placeholder {
+        font-size: 2.5rem;
+        color: var(--secondary-blue);
+        margin-bottom: 1rem;
       }
       .service-card h3 {
-        margin-bottom: 0.5rem;
-        color: var(--secondary-color);
-        font-size: 1.2rem;
+        font-family: var(--font-heading);
+        margin-bottom: 0.75rem;
+        color: var(--primary-blue);
+        font-size: 1.4rem;
+        font-weight: 600;
       }
       .service-card p {
-        line-height: 1.4;
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        color: var(--neutral-dark);
+        line-height: 1.5;
       }
 
       /* Legal Section */
-      .legal-section {
-        margin-top: 3rem;
+      #legal {
+        background-color: var(--white);
       }
-      .legal-section h2 {
-        color: var(--primary-color);
+      .legal-section h3 {
+        font-family: var(--font-heading);
+        color: var(--primary-blue);
+        margin-top: 2rem;
         margin-bottom: 1rem;
         font-size: 1.5rem;
+        font-weight: 600;
+        border-bottom: 2px solid var(--accent-sand);
+        padding-bottom: 0.5rem;
+      }
+      .legal-section h4 {
+        font-family: var(--font-heading);
+        color: var(--secondary-blue);
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
       }
       .scrollable-legal {
-        max-height: 300px;
+        max-height: 400px;
         overflow-y: auto;
-        background-color: #fff;
-        padding: 1rem;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        font-family: monospace;
+        background-color: var(--neutral-light);
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--neutral-medium);
+        font-family: var(--font-body);
+        font-size: 0.9rem;
         white-space: pre-wrap;
-        line-height: 1.4;
+        line-height: 1.7;
+      }
+      .scrollable-legal p,
+      .scrollable-legal li {
+        margin-bottom: 1em;
+        color: var(--text-primary);
+      }
+      .scrollable-legal ul {
+        list-style-position: outside;
+        padding-left: 1.5em;
+      }
+      .scrollable-legal strong {
+        font-weight: 600;
+        color: var(--primary-blue);
+      }
+      .scrollable-legal hr {
+        border: none;
+        border-top: 1px solid var(--neutral-medium);
+        margin: 2em 0;
       }
 
       /* ---------------------- FOOTER ---------------------- */
       footer {
-        background-color: var(--primary-color);
-        color: #fff;
+        background-color: var(--primary-blue);
+        color: var(--neutral-light);
         text-align: center;
-        padding: 1rem;
+        padding: 2.5rem 1rem;
+        font-family: var(--font-body);
       }
       footer p {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        opacity: 0.8;
       }
 
       /* ---------------------- MEDIA QUERIES ---------------------- */
+      @media (max-width: 992px) {
+        .hero h1 {
+          font-size: 2.8rem;
+        }
+        .hero p {
+          font-size: 1.15rem;
+        }
+        .about-section-content {
+          grid-template-columns: 1fr;
+          text-align: center;
+        }
+        .about-image {
+          margin-top: 2rem;
+          max-width: 500px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+
       @media (max-width: 768px) {
+        html {
+          font-size: 15px;
+        }
+        .section-title {
+          font-size: 2rem;
+        }
+        nav ul {
+          flex-direction: column;
+          align-items: center;
+          margin-top: 1rem; /* Basic stacking for now */
+        }
+        nav a {
+          margin-left: 0;
+          padding: 0.5rem 0;
+          display: block;
+          text-align: center;
+        }
         .hero h1 {
           font-size: 2.2rem;
         }
         .hero p {
           font-size: 1rem;
         }
-        nav a {
-          margin-left: 1rem;
+        .cta-button {
+          padding: 0.8rem 1.8rem;
+          font-size: 1rem;
+        }
+        .service-cards {
+          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
     <div id="wrapper">
-      <!-- HEADER with fish-inspired dark background -->
       <header>
-        <div class="header-inner">
-          <div class="header-logo">
-            <!-- Replace with your fish silhouette or logo image -->
+        <div class="container header-inner">
+          <a href="#hero" class="header-logo">
             <img
-              src="REPLACE-WITH-YOUR-FISH-LOGO.png"
-              alt="Coastal Restoration Logo"
+              src="images/CoastalRestorationServicesLogo-FinalTransparentBG.jpg"
+              alt="Coastal Restoration Logo Icon"
             />
             <span class="site-title">Coastal Restoration</span>
-          </div>
+          </a>
           <nav>
-            <a href="#hero">Home</a>
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#legal">Legal</a>
+            <ul>
+              <li><a href="#hero" class="active">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#services">Services</a></li>
+              <li><a href="#legal">Legal</a></li>
+            </ul>
           </nav>
         </div>
       </header>
 
-      <!-- HERO SECTION -->
       <section class="hero" id="hero">
-        <h1>Revitalize Your Coastline</h1>
-        <p>Restoring your property and keeping you fishing since day one.</p>
-        <a href="#services" class="cta-button">Explore Our Services</a>
+        <div class="container hero-content">
+          <h1>Protect & Restore</h1>
+          <p>
+            Expert solutions for water damage, mold, and property restoration.
+            We're dedicated to safeguarding your investment.
+          </p>
+          <a href="#services" class="cta-button">Discover Our Services</a>
+        </div>
       </section>
 
-      <!-- MAIN CONTENT -->
       <main>
-        <!-- About Section -->
-        <section class="about-section" id="about">
-          <h2>About Us</h2>
-          <p>
-            We specialize in providing top-notch remediation and restoration
-            solutions to protect your home, business, and the environment. From
-            water damage to mold removal, our team blends expertise with a
-            passion for coastal living to ensure every job is done right.
-          </p>
-          <p>
-            Inspired by our deep connection to the water, we're committed to
-            helping you maintain a beautiful, functional property—so you can
-            keep reeling in the good times.
-          </p>
-        </section>
-
-        <!-- Services Section -->
-        <section class="services-section" id="services">
-          <h2>Our Services</h2>
-          <div class="service-cards">
-            <div class="service-card">
-              <h3>Water Damage Repair</h3>
-              <p>
-                Rapid response & thorough restoration to protect your
-                investment.
-              </p>
-            </div>
-            <div class="service-card">
-              <h3>Mold Remediation</h3>
-              <p>
-                A healthy home starts with high-quality air and mold-free
-                spaces.
-              </p>
-            </div>
-            <div class="service-card">
-              <h3>Fire & Smoke Cleanup</h3>
-              <p>We handle the aftermath so you can breathe easy again.</p>
-            </div>
-            <div class="service-card">
-              <h3>Coastal Conservation</h3>
-              <p>
-                Preserving our beaches & shorelines for generations to come.
-              </p>
+        <section id="about" class="section-padding">
+          <div class="container">
+            <h2 class="section-title">About Coastal Restoration</h2>
+            <p class="section-subtitle">
+              Dedicated to quality, integrity, and helping our community enjoy
+              their coastal properties.
+            </p>
+            <div class="about-section-content">
+              <div class="about-text">
+                <p>
+                  At Coastal Restoration Services, we specialize in providing
+                  top-notch remediation and restoration solutions to protect
+                  your home and business. With years of experience, our
+                  certified professionals tackle everything from urgent water
+                  damage and persistent mold to comprehensive fire and smoke
+                  cleanup.
+                </p>
+                <p>
+                  Our mission is rooted in a deep respect for coastal living and
+                  a passion for our community. We use quality materials and
+                  sound practices to ensure every project restores your property
+                  effectively, so you can get back to what you love—whether
+                  that's fishing, boating, or simply enjoying the coastal
+                  lifestyle.
+                </p>
+              </div>
+              <div class="about-image">
+                <img
+                  src="https://picsum.photos/600/400/?business,construction"
+                  alt="Our team working on a restoration project"
+                />
+              </div>
             </div>
           </div>
         </section>
 
-        <!-- Legal Section (scrollable) -->
-        <section class="legal-section" id="legal">
-          <h2>Legal</h2>
-          <div class="scrollable-legal">
-            <!-- Paste your EULA/Privacy text here -->
-            ======================================================== COASTAL
-            RESTORATION END-USER LICENSE AGREEMENT (EULA) AND PRIVACY POLICY
-            ======================================================== [Your
-            existing EULA & privacy content goes here...]
+        <section id="services" class="section-padding">
+          <div class="container">
+            <h2 class="section-title">Our Expert Services</h2>
+            <p class="section-subtitle">
+              Comprehensive solutions tailored to your specific property
+              restoration and remediation needs.
+            </p>
+            <div class="service-cards">
+              <div class="service-card">
+                <div class="icon-placeholder">💧</div>
+                <h3>Water Damage Repair</h3>
+                <p>
+                  24/7 rapid response, water extraction, drying, and full
+                  structural restoration to prevent long-term issues.
+                </p>
+              </div>
+              <div class="service-card">
+                <div class="icon-placeholder">🍄</div>
+                <h3>Mold Remediation</h3>
+                <p>
+                  Safe and effective mold identification, containment, removal,
+                  and prevention for a healthy indoor environment.
+                </p>
+              </div>
+              <div class="service-card">
+                <div class="icon-placeholder">🔥</div>
+                <h3>Fire & Smoke Cleanup</h3>
+                <p>
+                  Comprehensive cleanup of smoke, soot, and odor, plus
+                  structural repairs to restore your property to pre-loss
+                  condition.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="legal" class="section-padding">
+          <div class="container">
+            <h2 class="section-title">Legal Information</h2>
+            <p class="section-subtitle">
+              Important terms and policies regarding the use of our services and
+              application.
+            </p>
+            <div class="scrollable-legal">
+              <h3>End-User License Agreement (EULA)</h3>
+              <p>
+                <strong>Effective Date:</strong>
+                <span class="currentDate"></span>
+              </p>
+              <p>
+                This End-User License Agreement ("EULA") is a legal agreement
+                between you and Coastal Restoration Services ("Company," "we,"
+                "us," or "our") for the Coastal Restoration Services mobile
+                application (the "Application"). By downloading, installing,
+                accessing, or using the Application, you agree to be bound by
+                the terms of this EULA. If you do not agree to these terms, do
+                not use the Application.
+              </p>
+
+              <h4>1. License Grant</h4>
+              <p>
+                Subject to the terms of this EULA, Company grants you a limited,
+                non-exclusive, non-transferable, revocable license to download,
+                install, and use the Application for your personal,
+                non-commercial use on a single mobile device owned or otherwise
+                controlled by you ("Mobile Device") strictly in accordance with
+                the Application's documentation.
+              </p>
+
+              <h4>2. Restrictions on Use</h4>
+              <p>You shall not:</p>
+              <ul>
+                <li>
+                  Copy the Application, except as expressly permitted by this
+                  license.
+                </li>
+                <li>
+                  Modify, translate, adapt, or otherwise create derivative works
+                  or improvements, whether or not patentable, of the
+                  Application.
+                </li>
+                <li>
+                  Reverse engineer, disassemble, decompile, decode, or otherwise
+                  attempt to derive or gain access to the source code of the
+                  Application or any part thereof.
+                </li>
+                <li>
+                  Remove, delete, alter, or obscure any trademarks or any
+                  copyright, trademark, patent, or other intellectual property
+                  or proprietary rights notices from the Application, including
+                  any copy thereof.
+                </li>
+                <li>
+                  Rent, lease, lend, sell, sublicense, assign, distribute,
+                  publish, transfer, or otherwise make available the
+                  Application, or any features or functionality of the
+                  Application, to any third party for any reason.
+                </li>
+                <li>
+                  Use the Application in violation of any law, regulation, or
+                  rule.
+                </li>
+                <li>
+                  Use the Application for purposes of competitive analysis, the
+                  development of a competing software product or service, or any
+                  other purpose that is to the Company's commercial
+                  disadvantage.
+                </li>
+              </ul>
+
+              <h4>3. Intellectual Property Rights</h4>
+              <p>
+                You acknowledge and agree that the Application is provided under
+                license, and not sold, to you. You do not acquire any ownership
+                interest in the Application under this EULA, or any other rights
+                thereto other than to use the Application in accordance with the
+                license granted, and subject to all terms, conditions, and
+                restrictions, under this EULA. Company reserves and shall retain
+                its entire right, title, and interest in and to the Application,
+                including all copyrights, trademarks, and other intellectual
+                property rights therein or relating thereto, except as expressly
+                granted to you in this EULA.
+              </p>
+
+              <h4>4. Collection and Use of Your Information</h4>
+              <p>
+                You acknowledge that when you download, install, or use the
+                Application, Company may use automatic means (including, for
+                example, cookies and web beacons) to collect information about
+                your Mobile Device and about your use of the Application. You
+                may also be required to provide certain information about
+                yourself as a condition to downloading, installing, or using the
+                Application or certain of its features or functionality. All
+                information we collect through or in connection with this
+                Application is subject to our Privacy Policy. By downloading,
+                installing, using, and providing information to or through this
+                Application, you consent to all actions taken by us with respect
+                to your information in compliance with the Privacy Policy.
+              </p>
+
+              <h4>5. Third-Party Materials</h4>
+              <p>
+                The Application may display, include, or make available
+                third-party content (including data, information, applications,
+                and other products, services, and/or materials) or provide links
+                to third-party websites or services ("Third-Party Materials").
+                You acknowledge and agree that Company is not responsible for
+                Third-Party Materials, including their accuracy, completeness,
+                timeliness, validity, copyright compliance, legality, decency,
+                quality, or any other aspect thereof. Company does not assume
+                and will not have any liability or responsibility to you or any
+                other person or entity for any Third-Party Materials.
+              </p>
+
+              <h4>6. Term and Termination</h4>
+              <p>
+                This EULA commences when you download or install the Application
+                and will continue in effect until terminated by you or Company.
+                You may terminate this EULA by deleting the Application and all
+                copies thereof from your Mobile Device. Company may terminate
+                this EULA at any time without notice if it ceases to support the
+                Application, which Company may do in its sole discretion, or if
+                you fail to comply with any term(s) of this EULA. Upon
+                termination, all rights granted to you under this EULA will also
+                terminate; and you must cease all use of the Application and
+                delete all copies of the Application from your Mobile Device.
+              </p>
+
+              <h4>7. Disclaimer of Warranties</h4>
+              <p>
+                THE APPLICATION IS PROVIDED TO YOU "AS IS" AND WITH ALL FAULTS
+                AND DEFECTS WITHOUT WARRANTY OF ANY KIND. TO THE MAXIMUM EXTENT
+                PERMITTED UNDER APPLICABLE LAW, COMPANY, ON ITS OWN BEHALF AND
+                ON BEHALF OF ITS AFFILIATES AND ITS AND THEIR RESPECTIVE
+                LICENSORS AND SERVICE PROVIDERS, EXPRESSLY DISCLAIMS ALL
+                WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE,
+                WITH RESPECT TO THE APPLICATION, INCLUDING ALL IMPLIED
+                WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+                TITLE, AND NON-INFRINGEMENT, AND WARRANTIES THAT MAY ARISE OUT
+                OF COURSE OF DEALING, COURSE OF PERFORMANCE, USAGE, OR TRADE
+                PRACTICE. WITHOUT LIMITATION TO THE FOREGOING, COMPANY PROVIDES
+                NO WARRANTY OR UNDERTAKING, AND MAKES NO REPRESENTATION OF ANY
+                KIND THAT THE APPLICATION WILL MEET YOUR REQUIREMENTS, ACHIEVE
+                ANY INTENDED RESULTS, BE COMPATIBLE, OR WORK WITH ANY OTHER
+                SOFTWARE, APPLICATIONS, SYSTEMS, OR SERVICES, OPERATE WITHOUT
+                INTERRUPTION, MEET ANY PERFORMANCE OR RELIABILITY STANDARDS, OR
+                BE ERROR-FREE, OR THAT ANY ERRORS OR DEFECTS CAN OR WILL BE
+                CORRECTED.
+              </p>
+
+              <h4>8. Limitation of Liability</h4>
+              <p>
+                TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT
+                WILL COMPANY OR ITS AFFILIATES, OR ANY OF ITS OR THEIR
+                RESPECTIVE LICENSORS OR SERVICE PROVIDERS, HAVE ANY LIABILITY
+                ARISING FROM OR RELATED TO YOUR USE OF OR INABILITY TO USE THE
+                APPLICATION OR THE CONTENT AND SERVICES FOR: (a) PERSONAL
+                INJURY, PROPERTY DAMAGE, LOST PROFITS, COST OF SUBSTITUTE GOODS
+                OR SERVICES, LOSS OF DATA, LOSS OF GOODWILL, BUSINESS
+                INTERRUPTION, COMPUTER FAILURE OR MALFUNCTION, OR ANY OTHER
+                CONSEQUENTIAL, INCIDENTAL, INDIRECT, EXEMPLARY, SPECIAL, OR
+                PUNITIVE DAMAGES. (b) DIRECT DAMAGES IN AMOUNTS THAT IN THE
+                AGGREGATE EXCEED THE AMOUNT ACTUALLY PAID BY YOU FOR THE
+                APPLICATION.
+              </p>
+
+              <h4>9. Indemnification</h4>
+              <p>
+                You agree to indemnify, defend, and hold harmless Company and
+                its officers, directors, employees, agents, affiliates,
+                successors, and assigns from and against any and all losses,
+                damages, liabilities, deficiencies, claims, actions, judgments,
+                settlements, interest, awards, penalties, fines, costs, or
+                expenses of whatever kind, including reasonable attorneys' fees,
+                arising from or relating to your use or misuse of the
+                Application or your breach of this EULA.
+              </p>
+
+              <h4>10. Governing Law</h4>
+              <p>
+                This EULA and your use of the Application are governed by and
+                construed in accordance with the internal laws of the State of
+                Florida without giving effect to any choice or conflict of law
+                provision or rule.
+              </p>
+
+              <h4>11. Entire Agreement</h4>
+              <p>
+                This EULA and our Privacy Policy constitute the entire agreement
+                between you and Company with respect to the Application and
+                supersede all prior or contemporaneous understandings and
+                agreements, whether written or oral, with respect to the
+                Application.
+              </p>
+
+              <h4>12. Contact Information</h4>
+              <p>
+                If you have any questions about this EULA, please contact us
+                at:<br />
+                Coastal Restoration Services<br />
+                [Your Street Address], Trinity, Florida [Your Zip Code]<br />
+                [Your Company Email Address]
+              </p>
+
+              <hr />
+
+              <h3>Privacy Policy</h3>
+              <p>
+                <strong>Last Updated:</strong> <span class="currentDate"></span>
+              </p>
+
+              <p>
+                Coastal Restoration Services ("we," "us," or "our") is committed
+                to protecting your privacy. This Privacy Policy explains how we
+                collect, use, disclose, and safeguard your information when you
+                use our mobile application (the "App"). Please read this privacy
+                policy carefully. If you do not agree with the terms of this
+                privacy policy, please do not access the app.
+              </p>
+
+              <h4>1. Information We Collect</h4>
+              <p>
+                We may collect information about you in a variety of ways. The
+                information we may collect via the App includes:
+              </p>
+              <ul>
+                <li>
+                  <strong>Personal Data:</strong> Personally identifiable
+                  information, such as your name, address, email address, and
+                  telephone number that you voluntarily give to us when you
+                  register with the App, request our services, or contact us.
+                </li>
+                <li>
+                  <strong>Service Request Data:</strong> Information related to
+                  your property and the restoration services you request,
+                  including descriptions of damage, photos you upload, and
+                  service history.
+                </li>
+                <li>
+                  <strong>Derivative Data & Device Information:</strong>
+                  Information our servers (or third-party services like
+                  Firebase) automatically collect when you access the App, such
+                  as your IP address, device type, operating system, access
+                  times, and app usage patterns. This may include crash reports
+                  and performance data.
+                </li>
+                <li>
+                  <strong>Location Data (Optional):</strong> If you grant
+                  permission, we may collect your precise or approximate
+                  location to provide location-based services, such as
+                  identifying your service address or dispatching our team. You
+                  can disable location services through your device settings.
+                </li>
+                <li>
+                  <strong>Mobile Device Access (Optional):</strong> If you grant
+                  permission, we may access your device's camera and photo
+                  gallery to allow you to upload images related to your service
+                  requests. You can manage these permissions in your device
+                  settings.
+                </li>
+              </ul>
+
+              <h4>2. How We Use Your Information</h4>
+              <p>
+                Having accurate information about you permits us to provide you
+                with a smooth, efficient, and customized experience.
+                Specifically, we may use information collected about you via the
+                App to:
+              </p>
+              <ul>
+                <li>Create and manage your account and service requests.</li>
+                <li>Deliver and manage our restoration services.</li>
+                <li>
+                  Communicate with you about your account, service requests, or
+                  relevant updates.
+                </li>
+                <li>
+                  Improve the efficiency, operation, and user experience of the
+                  App.
+                </li>
+                <li>
+                  Monitor and analyze usage and trends to enhance our services.
+                </li>
+                <li>
+                  Request feedback and contact you about your use of the App.
+                </li>
+                <li>
+                  Resolve disputes, troubleshoot problems, and respond to
+                  inquiries.
+                </li>
+                <li>Comply with legal and regulatory obligations.</li>
+              </ul>
+
+              <h4>3. Disclosure of Your Information</h4>
+              <p>
+                We may share information we have collected about you in certain
+                situations:
+              </p>
+              <ul>
+                <li>
+                  <strong>With Service Providers:</strong> We may share your
+                  information with third-party vendors, consultants, and other
+                  service providers who perform services for us or on our behalf
+                  (e.g., Firebase for backend services, analytics providers).
+                </li>
+                <li>
+                  <strong>By Law or to Protect Rights:</strong> If we believe
+                  the release of information about you is necessary to respond
+                  to legal process, investigate or remedy potential violations
+                  of our policies, or protect the rights, property, and safety
+                  of others, we may share your information as permitted or
+                  required.
+                </li>
+                <li>
+                  <strong>Business Transfers:</strong> In connection with any
+                  merger, sale of company assets, financing, or acquisition of
+                  all or a portion of our business by another company.
+                </li>
+                <li>
+                  <strong>With Your Consent:</strong> We may disclose your
+                  personal information for any other purpose with your consent.
+                </li>
+              </ul>
+              <p>
+                We do not sell your personal information to third parties for
+                marketing purposes.
+              </p>
+
+              <h4>4. Security of Your Information</h4>
+              <p>
+                We use administrative, technical, and physical security measures
+                designed to help protect your personal information. While we
+                have taken reasonable steps to secure the personal information
+                you provide, please be aware that no security measures are
+                perfect or impenetrable.
+              </p>
+
+              <h4>5. Data Retention</h4>
+              <p>
+                We will retain your personal information only for as long as is
+                necessary for the purposes set out in this Privacy Policy and to
+                comply with our legal obligations, resolve disputes, and enforce
+                our agreements.
+              </p>
+
+              <h4>6. Your Data Protection Rights</h4>
+              <p>
+                Depending on your jurisdiction, you may have rights regarding
+                your personal data, including the right to access, correct,
+                delete, or restrict its use. To make such a request, please
+                contact us using the information below.
+              </p>
+
+              <h4>7. Policy for Children</h4>
+              <p>
+                Our App and services are not directed to individuals under the
+                age of 13. We do not knowingly collect personal information from
+                children under 13. If you become aware that a child has provided
+                us with personal information, please contact us.
+              </p>
+
+              <h4>8. Changes to This Privacy Policy</h4>
+              <p>
+                We may update this Privacy Policy from time to time. The updated
+                version will be indicated by an updated "Last Updated" date and
+                will be effective as soon as it is accessible. We encourage you
+                to review this Privacy Policy frequently to be informed of how
+                we are protecting your information.
+              </p>
+
+              <h4>9. Contact Us</h4>
+              <p>
+                If you have questions or comments about this Privacy Policy or
+                our EULA, please contact us at:
+              </p>
+              <p>
+                Coastal Restoration Services<br />
+                [Your Street Address], Trinity, Florida [Your Zip Code]<br />
+                [Your Company Email Address]<br />
+                [Your Company Phone Number]
+              </p>
+            </div>
           </div>
         </section>
       </main>
 
-      <!-- FOOTER -->
       <footer>
-        <p>&copy; <span id="year"></span> Coastal Restoration Services</p>
+        <div class="container">
+          <p>
+            &copy; <span class="currentYear"></span> Coastal Restoration
+            Services. All Rights Reserved.
+          </p>
+        </div>
       </footer>
     </div>
 
     <script>
-      // Set the current year automatically
-      document.getElementById('year').textContent = new Date().getFullYear()
+      // Set the current year and dates automatically
+      const currentYearElements = document.querySelectorAll('.currentYear')
+      const currentDateElements = document.querySelectorAll('.currentDate')
+      const year = new Date().getFullYear()
+      const today = new Date()
+      const options = { year: 'numeric', month: 'long', day: 'numeric' }
+      const formattedDate = today.toLocaleDateString('en-US', options)
+
+      currentYearElements.forEach(el => (el.textContent = year))
+      currentDateElements.forEach(el => (el.textContent = formattedDate))
+
+      // Simple active link highlighter for nav (can be improved)
+      const navLinks = document.querySelectorAll('nav a')
+      // Function to update active link based on scroll or hash
+      function updateActiveLink() {
+        let currentSectionId = 'hero' // Default
+        const sections = document.querySelectorAll('main section[id]')
+
+        // Check hash first for direct navigation
+        if (window.location.hash) {
+          currentSectionId = window.location.hash.substring(1)
+        } else {
+          // Determine current section by scroll position
+          let foundSection = false
+          sections.forEach(section => {
+            const sectionTop = section.offsetTop - header.offsetHeight - 20 // Adjusted for header height
+            const sectionBottom = sectionTop + section.offsetHeight
+            if (
+              window.scrollY >= sectionTop &&
+              window.scrollY < sectionBottom
+            ) {
+              currentSectionId = section.id
+              foundSection = true
+            }
+          })
+          // If near top or no section found by scroll, default to hero
+          if (
+            !foundSection &&
+            window.scrollY <
+              (document.getElementById('hero')?.offsetHeight || 600) / 2
+          ) {
+            currentSectionId = 'hero'
+          }
+        }
+
+        navLinks.forEach(link => {
+          link.classList.remove('active')
+          if (link.getAttribute('href') === '#' + currentSectionId) {
+            link.classList.add('active')
+          }
+        })
+      }
+
+      // Update active link on page load and scroll
+      window.addEventListener('load', updateActiveLink)
+      window.addEventListener('scroll', updateActiveLink)
+      window.addEventListener('hashchange', updateActiveLink) // Handles clicks on links
+
+      // Update active class on click (redundant with hashchange if hrefs are #id, but good fallback)
+      navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+          navLinks.forEach(l => l.classList.remove('active'))
+          this.classList.add('active')
+          // The hashchange listener will also fire and correctly set the active link
+        })
+      })
+      const header = document.querySelector('header')
     </script>
   </body>
 </html>

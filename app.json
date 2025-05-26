@@ -2,21 +2,25 @@
   "expo": {
     "name": "Coastal",
     "slug": "Coastal",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/appicon.png",
     "scheme": "coastalrestorationservice",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
-      "associatedDomains": ["applinks:coastalrestorationservice.com"],
+      "associatedDomains": [
+        "applinks:coastalrestorationservice.com",
+        "applinks:coastalrestorationservice.com"
+      ],
       "supportsTablet": true,
       "bundleIdentifier": "com.jbucaria.Coastal",
       "buildNumber": "1.0.0",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["comgooglemaps"],
-        "GMSApiKey": "AIzaSyCaaprXbVDmKz6W5rn3s6W4HhF4S1K2-zs"
+        "LSApplicationQueriesSchemes": ["comgooglemaps", "comgooglemaps"],
+        "GMSApiKey": "AIzaSyCaaprXbVDmKz6W5rn3s6W4HhF4S1K2-zs",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
